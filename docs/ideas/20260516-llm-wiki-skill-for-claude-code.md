@@ -1,0 +1,256 @@
+# LLM Wiki Skill for Claude Code（Claude Code 知識の第二の脳）
+
+> 作成日: 2026-05-16
+> ステータス: draft
+> 優先度: P1
+
+## 概要
+
+Karpathy の「LLM Wiki」パターン（検索ではなくコンパイル）を Claude Code スキルとして実装し、進化の速い Claude Code のベストプラクティス・公式更新・実践知見を、相互参照された永続的な知識ベースに蓄積・整理し続けるための個人 Wiki を構築する。蓄積した知識から「最新の Claude Code チートシート」「開発者向け Tips 集」等の派生成果物を生成・維持できることを中核目的とする。
+
+**リポジトリの役割転換（決定 A）:** 本リポジトリは従来「新規プロジェクトの起点としてコピーして使うテンプレート」だったが、本機能の導入に伴い **個人の Claude Code 知識ハブ専用リポジトリ** へ役割転換する。llm-wiki が主役機能であり、`CLAUDE.md` の「テンプレート」定義および `README.md` を本リポジトリの新しい役割に合わせて書き換える（テンプレートとしてのコピー利用は前提としない）。既存のドキュメント生成系コマンド/スキル群（`gen-all-docs` 等）は知識ハブの運用補助として併存させる。
+
+## 背景
+
+### 現状の課題
+
+- Claude Code（CLI / Agent SDK / API）は更新が速く、新機能・ベストプラクティスを追い続けるのが負担。
+- 知識が公式ドキュメント・外部記事・YouTube・GitHub・自分の試行錯誤メモに散在し、必要なときに根拠を再発見するコストが高い。
+- 通常のメモアプリや RAG はステートレスで、ソースを追加するたびに知識が「コンパイル」されず、矛盾や陳腐化が放置される。
+- 古い情報（旧バージョン前提の Tips）と新しい情報が区別されず混在する。
+- 「最新版のチートシート/Tips 集を作って」と指示しても、根拠付き・最新の派生成果物として生成・維持される仕組みがない。
+
+### 解決したいこと
+
+- ソースを取り込むたびに、要約・概念・エンティティ・実践知見ページが自動でコンパイル・相互参照される状態にする。
+- 蓄積知識から、引用付きで最新のチートシート/Tips 集（synthesis）を生成し、再生成・健全性チェックの対象として維持する。
+- 「なぜこの設定/パターンを採ったか」「どのバージョンで何が変わったか」が引用付きで即座に引ける。
+- 帳簿管理（相互参照更新・陳腐化検出・矛盾検出）を Claude Code に委ね、人間は「何を取り込むか／何を問うか」に集中する。
+
+## 解決策
+
+### アプローチ
+
+記事（Reza Rezvani: "LLM Wiki Skill — Build a Second Brain With Claude Code and Obsidian"）の設計を**設計図として参照しつつ、ゼロから自作**する。3 層アーキテクチャを厳守する。
+
+1. **raw/** — 取得スナップショットとして不変保存（人間が追加、エージェントは読むだけ）
+2. **wiki/** — エージェントが完全所有するコンパイル済み Markdown ページ群
+3. **スキル（スキーマ）** — エージェントを規律あるメンテナーにする規約とワークフロー
+
+Wiki の実体は**独立した Obsidian ボールト**（例: `~/Documents/ClaudeCodeWiki`、別 Git でバージョン管理）に置く。Obsidian はグラフビュー/バックリンク/閲覧用の表示レイヤー。スキルは**本テンプレートリポジトリのみ**に `.claude/skills/llm-wiki/` として実装し、**ユーザーグローバル配置やボールトへのコピーはしない**。本プロジェクトからボールトを参照するため、本プロジェクト直下にシンボリックリンク `./wiki-vault` を 1 本張る（実体は分離・論理的に参照可能）。スキルは単一スキル `/llm-wiki <操作>` として SKILL.md 内でモード分岐する（独立スラッシュコマンド・skill 同梱 hooks は作らない）。
+
+```
+# 想定ワークフロー（本プロジェクトで claude を起動。CWD ≠ ボールト）
+cd ~/Projects/personal-wiki-for-claude-code
+ln -s ~/Documents/ClaudeCodeWiki ./wiki-vault   # 初回のみ（init が案内）
+claude
+> /llm-wiki init
+> /llm-wiki ingest https://medium.com/.../some-claude-code-best-practice
+> /llm-wiki query "Skill の description を確実にトリガーさせる書き方は？"
+> /llm-wiki synthesize "最新の Claude Code チートシート"
+> /llm-wiki lint
+```
+
+### 設計方針
+
+1. **検索ではなくコンパイル**: 取り込み時に要約・相互参照・矛盾フラグを一度確定し、その後も維持する。
+2. **3 層の厳密分離**: `raw/` は取得スナップショットとして不変保存（原文 URL・取得日時・取得手段をメタ保持し再検証可能）。すべての主張は特定の raw ソースを引用する。
+3. **Claude Code 特化のスキーマ拡張**: 汎用5タイプ（source / concept / entity / comparison / synthesis）に加え、`practice`（試した実践とその効果）と `feature`（機能ごとの最新仕様まとめ）を追加。
+4. **派生成果物の一級市民化**: チートシート/Tips 集は `/llm-wiki synthesize` で `wiki/syntheses/` に保存し、再生成・lint の対象とする。query（質問応答）とは目的を分離。
+5. **陳腐化への強化**: フロントマターに `claude_code_version` を持たせ、ボールトの基準ファイル `wiki/current-baseline.md` と比較して陳腐化（バージョン乖離・更新日 30 日超）を検出。`current-baseline.md` は **Tier A（権威ソース）由来は自動更新を許容、手動上書き可**（C1 を改訂。従来の完全手動から変更）。
+9. **情報源ティア（決定）**: ソースを **Tier A（Anthropic 公式ドキュメントサイト / 公式 GitHub＝権威ソース）** と **Tier B（記事/動画/Notion/個人メモ等）** に区分し、フロントマターにティアを持たせる。
+   - **Tier A**: 日次で自動再取得（raw に新スナップショット追加）→ 該当ページ再コンパイル → `current-baseline.md` 自動更新。E1（raw 不変）は「新しい取得日のスナップショットを *追加*、過去は消さない」ため維持される。
+   - **Tier B**: (iii) を採用 — ingest 時にバージョン乖離を検知して `current-baseline.md` 更新を対話提案（承認制）＋ Phase 2 lint でベースライン鮮度を監査。手動主体。
+   - **ロードマップ位置づけ**: 日次自動再取得＋自動再コンパイルは自律実行＋自動書き込みのため **Phase 3（運用自動化）で Tier A 限定の先行解禁**。MVP（Phase 1）は **ティア区分メタデータを持つところまで**で、自動更新本体は実装しない。
+6. **個人利用前提**: 単一エージェント書き込み（マージ競合回避）、信頼度 0.7 程度を許容。
+8. **フロントマター骨格は MVP から（決定 ア）**: 陳腐化・矛盾の **判定ロジック（lint）は Phase 2** のままだが、`claude_code_version` / `updated` / `stale` 等のフロントマター・フィールドは **MVP の ingest/synthesize 時点から全ページに埋める**。後付け移行は情報欠損で実質不可能なため、データ骨格だけ先行させて Phase 2 が過去ページにも効くようにする。
+7. **リポジトリ役割の更新（決定 A）**: `CLAUDE.md` の「テンプレート」定義と `README.md` を「個人 Claude Code 知識ハブ」へ書き換える。`.claude/skills/*/SKILL.md` の記述粒度は既存 Skill 群と揃え、`README.md` の「含まれるもの」表は知識ハブ用途として再構成する。
+
+### 代替案と比較
+
+| 案 | メリット | デメリット | 採否 |
+|----|---------|-----------|------|
+| 記事を設計図にゼロから自作 | リポジトリ規約に合わせ込める／中身を完全理解できる | 実装工数が大きい | 採用 |
+| 既存 `alirezarezvani/claude-skills` の llm-wiki を流用 | 最短で動く | テンプレート規約と乖離、理解が浅くなる | 不採用 |
+| 独立コマンド `/wiki-*` + skill 同梱 hooks | 記事の構成に忠実 | Claude Code ではスキル/コマンド/Hooks は別レイヤー。Anthropic 推奨はスキル | 不採用（スキル一本化） |
+| ボールトをこのコードベースに同居 / `.claude` をボールトに持たせる | Git 一元管理が楽 | Obsidian ボールトとして使いにくい／二重管理 | 不採用（シンボリックリンクで代替） |
+| スキルのユーザーグローバル配置 | どこからでも `/llm-wiki` | 本プロジェクト限定にしたい意向に反する | 不採用 |
+
+#### リポジトリの役割（テンプレート vs 知識ハブ）
+
+| 案 | メリット | デメリット | 採否 |
+|----|---------|-----------|------|
+| (A) テンプレートをやめ、個人 Claude Code 知識ハブ専用リポジトリへ役割転換 | 「この特定リポジトリで `/llm-wiki` を使う」設計と整合。役割が明快 | `CLAUDE.md`/`README.md` の全面書き換えが必要。テンプレート用途は失う | **採用** |
+| (B) テンプレートは維持し、llm-wiki はコピー時に除外する例外資産 | テンプレート用途を残せる | 例外管理が複雑（`/initial-setup` 除外ロジック等）、設計意図が二重化 | 不採用 |
+| (C) llm-wiki もテンプレートの一部として配布、各プロジェクトが固有 Wiki を持つ | テンプレート用途を残せる | 「単一の個人ボールト」前提を放棄することになり中核目的とずれる | 不採用 |
+
+## 実装する機能
+
+### ロードマップ
+
+| Phase | 機能 | 概要 |
+|-------|------|------|
+| 1 | `/llm-wiki init` `ingest` `query` `synthesize` + schema/templates | コア取り込み・問い合わせ・派生成果物生成（**今回のスコープ・MVP**） |
+| 2 | `/llm-wiki lint` + 拡張スキーマ（practice/feature, version baseline） | 健全性・陳腐化・矛盾検出 |
+| 3 | session-start hook（設定例）、URL 自動取得、overview 自動更新、**Tier A 日次自動再取得・再コンパイル・baseline 自動更新（先行解禁）** | 運用自動化 |
+| 4 | ソース別取得ツール（X / Medium / Notion / 公式サイト等） | 取り込み拡充 |
+
+### 機能1: スキル本体（SKILL.md と規約）
+
+`.claude/skills/llm-wiki/` に `SKILL.md` と `references/{schema.md,page-templates.md,lint-rules.md}` を配置（`commands/` は作らず SKILL.md でモード分岐。session-start hook は `references/` に **設定例** として記載し、Hooks レイヤーへの導入は利用者判断）。規約（raw 不変・必ず引用・[[wikilinks]]・全ページ YAML フロントマター・index/log 更新・操作ごと Git コミット・ボールトパスは設定ファイル参照）を明文化。
+
+### 機能2: 初期化（/llm-wiki init）
+
+`./wiki-vault` シンボリックリンクの存在確認（無ければ実体パスを対話で確認し `ln -s` を案内・実行）→ ボールトに `raw/`・`wiki/`・`index.md`・`log.md`・`overview.md`・`wiki/current-baseline.md` を作成 → ボールト側 Git を初期化 → 本プロジェクトの `.gitignore` に `wiki-vault` を、設定ファイル（相対パス `./wiki-vault` と実体絶対パスを記録）を作成。
+
+### 機能3: 取り込み（/llm-wiki ingest <path-or-url>）
+
+ソース検証 → 全文読込・分析 → ユーザーと要点確認 → ページ作成/更新 → index.md / log.md 更新 → Git コミット。**矛盾検出は二段方式（決定 Z）**: ingest 時は新ソースが触れる concept/feature の [[wikilink]] 先（＝同一トピックの既存ページ）だけを照合し即時検出（全走査せずコンテキスト圧迫を回避）。トピックを跨ぐ横断的矛盾は index.md の主張サマリを使う Phase 2 lint の矛盾スキャンに委譲する。URL 指定時は取得テキストを `raw/<種別>/<取得日>-<slug>.md` に保存し、原文 URL・取得日時・取得手段をメタとして記録（E1: 取得スナップショット方式。公式ドキュメントも特別扱いせずリンク＋取得日付で保存し、必要時に読みに行く）。
+
+### 機能4: 問い合わせ（/llm-wiki query <質問>）
+
+index.md → 関連ページの順で読み、引用付きで Wiki から回答を統合（D2）。Wiki に不足があれば `WebSearch`/`WebFetch` で補完し「⚠️ Wiki 外（Web 検索）」と明示。検索で有用なソースが見つかれば `/llm-wiki ingest <url>` での取り込みを提案する。
+
+### 機能5: 派生成果物生成（/llm-wiki synthesize <テーマ>）
+
+Wiki 横断でテーマ（例: 最新チートシート、開発者向け Tips 集）を統合し、引用付きの synthesis ページを `wiki/syntheses/` に作成/再生成。不足は query 同様 Web で補完・明示し、ingest 提案。生成物は index.md / log.md 反映・Git コミットされ、以後 lint と再生成の対象になる。
+
+### 機能6: 健全性チェック（/llm-wiki lint・Phase 2）
+
+孤立ページ・陳腐化（更新日 30 日超 / `wiki/current-baseline.md` との `claude_code_version` 乖離 / `stale:true`）・**横断的矛盾スキャン（index.md の主張サマリを走査して別トピック間の矛盾を検出。決定 Z の二段目）**・信頼度監査・不足ページ・index 同期・synthesis の再生成要否・`current-baseline.md` 自体の鮮度（最終更新からの経過日数）。結果を log.md に追記。前提として ingest/synthesize は index.md に各ページの主要主張サマリ（1〜2 行）を維持する。
+
+### 機能7: 拡張スキーマ（Phase 2）
+
+| ページタイプ | 用途 |
+|---------|------|
+| source / concept / entity / comparison / synthesis | 汎用タイプ（synthesis はチートシート/Tips 集等の派生成果物にも使用） |
+| practice | 試した Claude Code 実践とその効果（効いた/効かなかった） |
+| feature | 機能（Skills/Commands/Hooks/MCP/Agent SDK 等）ごとの最新仕様まとめ |
+
+タイプの使い分け:
+- `concept`: 抽象的な考え方・原則（例: プログレッシブ・ディスクロージャ、コンテキスト圧迫回避）。
+- `entity`: 固有名を持つ具体物のうち **Claude Code の機能以外**（外部ツール、人物、組織、ライブラリ等）。
+- `feature`: Claude Code 自体の機能（Skill/Hooks/MCP/Agent SDK 等）。**バージョン追従・陳腐化管理の対象**で `claude_code_version` を持つ。entity と紛らわしいが「Claude Code の機能なら feature、それ以外の固有物は entity」で線引きする。
+
+フロントマター追加: `claude_code_version`（その知見が前提とするバージョン。`wiki/current-baseline.md` が現在の正。主に `feature` / `practice` で使用）。
+
+## 受け入れ条件
+
+### リポジトリ役割の更新（決定 A）
+- [ ] `CLAUDE.md` の「新規プロジェクトの起点としてコピーして使うテンプレート」という定義が「個人 Claude Code 知識ハブ専用リポジトリ」へ書き換えられている
+- [ ] `CLAUDE.md` から「コピー先のプロジェクトでは書き換えてください」等のテンプレート前提の記述が除去/再構成されている
+- [ ] `README.md` がテンプレート紹介ではなく知識ハブ（llm-wiki が主役）の説明として再構成されている
+
+### スキル構成
+- [ ] `.claude/skills/llm-wiki/` に SKILL.md と references が存在する（本プロジェクトのみ。グローバル配置・ボールトコピーをしない）
+- [ ] SKILL.md が `init` / `ingest` / `query` / `synthesize` / `lint` のモード分岐を持つ
+- [ ] `README.md` の「含まれるもの」表と「推奨ワークフロー」に llm-wiki が主役機能として追記されている
+
+### /llm-wiki init
+- [ ] `./wiki-vault` が無ければ実体パスを対話確認し `ln -s` を案内/実行する
+- [ ] 実行すると raw/・wiki/・index.md・log.md・overview.md・wiki/current-baseline.md とボールト側 Git 追跡が作られる
+- [ ] 本プロジェクトの `.gitignore` に `wiki-vault` が追記され、設定ファイルに相対パス `./wiki-vault` と実体絶対パスが記録される
+
+### /llm-wiki ingest
+- [ ] パス指定で raw のソースを取り込み、source 要約ページを生成する
+- [ ] URL 指定で取得テキストを raw/ に保存し（原文 URL・取得日時・取得手段をメタ記録）取り込める
+- [ ] 既出ソースは log.md 検索で検知し再取り込み可否を確認する
+- [ ] 生成ページに YAML フロントマターと raw への引用、[[wikilinks]] が含まれる
+- [ ] MVP の生成ページに `claude_code_version` / `updated` / `stale` フロントマターが（判定ロジックは Phase 2 でも）埋められている
+- [ ] MVP の生成ページに情報源ティア（Tier A / Tier B）のフロントマターが付与される（自動更新本体は Phase 3）
+- [ ] Tier B ソースの ingest 時、バージョン乖離があれば `current-baseline.md` 更新を対話提案する（承認制）
+- [ ] 既存ページと矛盾する主張は「矛盾」セクションを追加し、黙って上書きしない（ingest 時は同一トピック＝[[wikilink]] 先のみ照合。横断的矛盾は Phase 2 lint に委譲）
+- [ ] 操作後に index.md / log.md 更新と Git コミットが行われる
+- [ ] index.md に各ページの主要主張サマリ（1〜2 行）が維持される（Phase 2 横断矛盾スキャンの前提）
+
+### /llm-wiki query
+- [ ] index.md → 関連ページの順で読み、引用付きで回答を統合する
+- [ ] Wiki に不足がある場合は Web 検索で補完し「Wiki 外」と明示し、有用ソースの ingest を提案する
+
+### /llm-wiki synthesize（MVP）
+- [ ] テーマ指定でチートシート/Tips 集等の synthesis ページを `wiki/syntheses/` に引用付きで生成する
+- [ ] 既存の synthesis を再生成でき、index.md / log.md 反映と Git コミットが行われる
+- [ ] Wiki 外で補完した箇所は「Wiki 外（Web 検索）」と明示される
+
+### /llm-wiki lint（Phase 2）
+- [ ] 陳腐化チェックが更新日 30 日超と `current-baseline.md` との `claude_code_version` 乖離の両方を検出する
+- [ ] 健全性レポートを出力し log.md に追記する
+- [ ] index.md の主張サマリを走査して別トピック間の横断的矛盾を検出する（決定 Z の二段目）
+- [ ] `current-baseline.md` 自体の鮮度（最終更新からの経過日数）を監査する
+
+### スキーマ拡張（Phase 2）
+- [ ] practice / feature ページタイプのテンプレートが page-templates.md に定義されている
+
+## スコープ外
+
+### 今回対象外
+- チーム利用向けの調整機構（レビューゲート、貢献者追跡、アクセス制御）
+- セマンティック検索 / `qmd` 等 MCP 連携（200ページ・100ソース超で検討）
+- 複数エージェント同時書き込みの競合解決
+- ソース別取得ツール（X / Medium / Notion / 公式サイト等）の専用実装 → Phase 4
+
+### 将来対応予定
+- session-start hook による自動コンテキストロード（Phase 3）
+- URL 自動取得・overview 自動更新（Phase 3）
+- Tier A（公式サイト/公式 GitHub）の日次自動再取得・再コンパイル・`current-baseline.md` 自動更新（Phase 3 先行解禁）
+- ソース別取得ツール群（Phase 4）
+- 毎晩の自律 `/llm-wiki lint`（信頼モデル整備後）
+- 規模拡大時の検索レイヤー追加
+
+## 技術的考慮事項
+
+### ディレクトリ構成
+
+```
+personal-wiki-for-claude-code/        # テンプレートリポジトリ（スキル資産の置き場）
+├── .claude/skills/llm-wiki/
+│   ├── SKILL.md
+│   └── references/{schema.md,page-templates.md,lint-rules.md}  # session-start hook は設定例として記載
+├── .gitignore                        # wiki-vault を追記
+└── wiki-vault -> ~/Documents/ClaudeCodeWiki   # シンボリックリンク（gitignore 対象）
+
+~/Documents/ClaudeCodeWiki/           # 実体（独立 Obsidian ボールト・別 Git。.claude は持たない）
+├── raw/{docs,articles,videos,github,notes}/
+└── wiki/{sources,concepts,entities,comparisons,syntheses,practices,features}/
+    ├── index.md
+    ├── log.md
+    ├── overview.md
+    └── current-baseline.md           # claude_code_version 等の現在の正（手動更新・C1）
+```
+
+### 既存コードとの関係
+
+- 参照: 記事のスキル設計（SKILL.md / schema / templates）
+- 整合: 既存 `.claude/skills/*/SKILL.md` の記述粒度、`gen-all-docs` の規模方針
+- 影響: `CLAUDE.md` の役割定義の全面書き換え（テンプレート → 知識ハブ）、`README.md` の再構成（含まれるもの表・推奨ワークフロー）、本プロジェクトの `.gitignore`
+
+### 依存コンポーネント
+
+| コンポーネント | 用途 |
+|--------------|------|
+| Claude Code Skills | スキルの実行基盤（単一スキル＋モード分岐） |
+| Git | Wiki のバージョン履歴（ボールト側・別リポジトリ） |
+| Obsidian | 表示レイヤー（グラフ/バックリンク/閲覧） |
+| シンボリックリンク（`ln -s`） | 本プロジェクトからボールト実体を参照 |
+| WebFetch / WebSearch | URL ソース取得・query/synthesize の Wiki 外補完 |
+
+### リスクと対策
+
+| リスク | 影響度 | 対策 |
+|-------|--------|------|
+| 取り込み時のハルシネーション（誤帰属・概念の誤統合） | 中 | 厳格な引用強制 + 定期 lint。raw は取得スナップショットとして保持し再検証可能 |
+| 長文ソースでコンテキスト圧迫 | 中 | index → 対象ページ特定 → 該当ページのみ読込の選択的読み込み |
+| メンテナンス放置による陳腐化 | 高 | 遭遇時に都度取り込む運用 + `current-baseline.md` ベース lint で陳腐化を可視化 |
+| 「最新版」期待と実態の乖離（ingest 不足時） | 中 | synthesize/query は Wiki 外補完を明示し ingest を提案。期待値を本ドキュメントに明記 |
+| WebFetch が原文を忠実再現しない | 低 | E1（取得スナップショット＋URL/日時メタ）と定義。必要時に原文を再取得して検証 |
+| Tier A 日次自動再取得（スケジュール実行）と対話セッションの同時書き込み競合 | 中 | 単一エージェント書き込み前提（決定 6）と競合しうる。Phase 3 設計時にロック/キュー or 実行時間帯分離を検討（MVP では発生しない） |
+| シンボリックリンク切れ・誤コミット | 低 | 設定ファイルに実体絶対パスを記録、`.gitignore` に `wiki-vault`、init で存在検証 |
+| テンプレート規約との乖離 | 低 | 既存 Skill の粒度に合わせ、README 表も同時更新 |
+
+## 更新履歴
+
+- 2026-05-16: 初版作成（ブレインストーミングセッション）
+- 2026-05-17: 矛盾検出を二段方式（決定 Z）に確定 — ingest 時は同一トピック（[[wikilink]] 先）のみ即時照合、横断的矛盾は index.md 主張サマリを使う Phase 2 lint に委譲。index.md に主張サマリ維持を前提条件として追加。lint に baseline 鮮度監査を追加
+- 2026-05-17: 情報源ティア（Tier A=公式/Tier B=その他）を導入。Tier A は Phase 3 で日次自動再取得・再コンパイル・baseline 自動更新を先行解禁、Tier B は (iii)。C1 を「Tier A 自動更新可・手動上書き可」に改訂。MVP はティア区分メタのみ。スケジュール実行と対話書き込みの競合をリスクに追加。MVP フロントマター骨格（決定 ア）を受け入れ条件に追加
+- 2026-05-17: リポジトリ役割を決定 A（テンプレート → 個人 Claude Code 知識ハブ専用リポジトリ）に確定。`CLAUDE.md`/`README.md` の書き換えを機能スコープ・受け入れ条件・影響範囲に追加。代替案に「リポジトリの役割」比較表を追加
+- 2026-05-17: 壁打ちセッションで以下を反映 — スキル一本化（`/llm-wiki <操作>`、独立コマンド/同梱 hooks 廃止）、本プロジェクト限定配置＋`./wiki-vault` シンボリックリンク＋相対パス設定（B1）、`claude_code_version` を `current-baseline.md` 基準に（C1）、raw を取得スナップショット方式に（E1）、query を Web 検索フォールバック明示＋ingest 提案に（D2）、`/llm-wiki synthesize` を MVP・受け入れ条件に追加（F2）、ロードマップに Phase 4（ソース別取得ツール）追加、拡張スキーマに concept/entity/feature の使い分けを補足

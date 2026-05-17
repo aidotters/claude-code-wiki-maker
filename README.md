@@ -1,132 +1,95 @@
-# project-template-for-claude-code
+# personal-wiki-for-claude-code
 
-新規プロジェクトの起点として GitHub の **"Use this template"** から新規リポジトリを作成して使うことを前提とした、Claude Code 用テンプレートリポジトリです。
+> **ステータス: 計画段階**
+> このドキュメントは `docs/ideas/20260516-llm-wiki-skill-for-claude-code.md` から生成されました。
+> 主役機能 `/llm-wiki` は未実装です。実装後は `/update-docs` で実態に同期してください。
 
-`.claude/`（コマンド・スキル・エージェント）と、それと連携するリポジトリ構造（`docs/core/`、`docs/ideas/`、`.steering/` など）をひとまとめに提供します。
+進化の速い **Claude Code**（CLI / Agent SDK / API）の知識を、検索ではなく**コンパイル**して蓄積し続ける、**個人の Claude Code 知識ハブ**リポジトリです。
 
-## 対応プロジェクトの種類
+ベストプラクティス・公式更新・自分の試行錯誤を、相互参照された永続的な Wiki に整理し続け、そこから「最新チートシート」「開発者向け Tips 集」等を**引用付き**で生成・維持します。Karpathy の「LLM Wiki」パターンを Claude Code スキル `/llm-wiki` として実装します。
 
-特定のプログラミング言語に依存せず、以下のいずれにも適用できます。
+> このリポジトリは **コピーして使うテンプレートではありません**。
+> このリポジトリを CWD にして `claude` を起動し、`/llm-wiki` を運用します。
 
-| プロジェクト種別 | 例 | 主な技術スタック |
-|------------------|-----|------------------|
-| **Python** | データ処理 / CLI / FastAPI 等 | `pyproject.toml` + `pytest` + `ruff` + `mypy` |
-| **TypeScript / Node.js** | Web アプリ / CLI / ライブラリ | `package.json` + `vitest` 等 + `eslint` + `tsc` |
-| **Rust** | CLI / システムツール | `Cargo.toml` + `cargo test` + `clippy` |
-| **Go** | CLI / API サーバー | `go.mod` + `go test` + `golangci-lint` |
-| **MCP のみ** | Claude Code を MCP サーバーで拡張する構成。コード実装なし | `.mcp.json` のみ |
-| その他 | 上記以外の言語・複合スタック | `/initial-setup` で手動指定 |
+## コンセプト: 検索ではなくコンパイル
 
-`/initial-setup` がパッケージマネージャを検出して言語別のデフォルト（テスト・リント・ビルドコマンド）を自動適用します。**MCP のみのプロジェクト**（ソースコードを書かず、MCP サーバーの構成・運用のみを行うプロジェクト）にも対応します。
+通常のメモアプリや RAG はステートレスで、ソースを足しても知識が「コンパイル」されず矛盾や陳腐化が放置されます。本リポジトリは 3 層アーキテクチャでこれを解決します。
+
+| 層 | 役割 | 所有 |
+|----|------|------|
+| `raw/` | 取得スナップショット（原文 URL・取得日時・取得手段を保持、不変） | 人間が追加 |
+| `wiki/` | コンパイル済みページ群（要約・相互参照・[[wikilinks]]） | エージェントが所有 |
+| スキル | 規約とワークフロー（必ず引用・矛盾は明示・操作ごと Git） | 規律の源 |
+
+Wiki の実体は**独立した Obsidian ボールト**（別 Git 管理）。本リポジトリからはシンボリックリンク `./wiki-vault` で参照します（実体は分離・`.gitignore` 対象）。Obsidian はグラフ/バックリンク/閲覧の表示レイヤーです。
 
 ## 使い方
 
-### 1. テンプレートから新規プロジェクトを作成する
-
-GitHub の **"Use this template"** 機能を使って、新規リポジトリを作成します。
-
-#### 方法 A: GitHub CLI (`gh`) を使う（推奨）
-
-1コマンドで「新規リポジトリ作成 + ローカルへのクローン」までを完結できます。
-
 ```bash
-gh repo create <new-project-name> --template <owner>/project-template-for-claude-code --private --clone
+cd ~/Projects/personal-wiki-for-claude-code
+ln -s ~/Documents/ClaudeCodeWiki ./wiki-vault   # 初回のみ（init が案内）
+claude
+> /llm-wiki init
+> /llm-wiki ingest https://medium.com/.../some-claude-code-best-practice
+> /llm-wiki query "Skill の description を確実にトリガーさせる書き方は？"
+> /llm-wiki synthesize "最新の Claude Code チートシート"
+> /llm-wiki lint
 ```
 
-> `gh` のインストールがまだの場合は [GitHub CLI 公式インストールガイド](https://cli.github.com/) を参照してください。初回利用時は `gh auth login` で認証が必要です。
+### `/llm-wiki` の操作
 
-#### 方法 B: `git` コマンドのみで行う
+| 操作 | 内容 | Phase |
+|------|------|:---:|
+| `init` | ボールト初期化・`./wiki-vault` リンク案内・設定/`.gitignore` 整備 | 1（MVP） |
+| `ingest <path-or-url>` | ソースを取り込み、source ページ生成・相互参照・矛盾は明示 | 1（MVP） |
+| `query <質問>` | index → 関連ページの順で読み引用付き回答（不足は Web 補完を明示） | 1（MVP） |
+| `synthesize <テーマ>` | チートシート/Tips 集等を `wiki/syntheses/` に引用付き生成・再生成 | 1（MVP） |
+| `lint` | 孤立/陳腐化/横断的矛盾/信頼度/index 同期/再生成要否を監査 | 2 |
 
-`gh` を使わず、Web UI と `git` の組み合わせで同等の結果（履歴1コミットの新規リポジトリ）を作る手順です。
+## ロードマップ
 
-1. GitHub の Web UI で空のリポジトリ `<owner>/<new-project-name>` を作成する（README や `.gitignore` は付けない）
-
-2. ローカルでテンプレートを取得し、履歴を初期化して push する
-
-   ```bash
-   git clone --depth=1 https://github.com/<owner>/project-template-for-claude-code.git <new-project-name>
-   cd <new-project-name>
-   rm -rf .git
-   git init
-   git add -A
-   git commit -m "chore: initial commit from template"
-   git branch -M main
-   git remote add origin https://github.com/<owner>/<new-project-name>.git
-   git push -u origin main
-   ```
-
-いずれの方法でも、テンプレート本体の履歴・リモートを引き継がない、クリーンな新規リポジトリとして作業を開始できます。
-
-### 2. `/initial-setup` を実行する
-
-新規プロジェクトのルートで Claude Code を起動し、`/initial-setup` を実行します。
-
-- パッケージマネージャ（`pyproject.toml` / `package.json` / `Cargo.toml` / `go.mod`）を検出し、言語に合わせて Commands/Skills のデフォルト値を自動置換します
-- 必要なディレクトリ（`src/`、`tests/`、`docs/core/` 等）と `CLAUDE.md`、`.env.example`、`.gitignore` のスケルトンを補完します
-- 既存プロジェクト・新規プロジェクトの両方に対応（モードを自動判定／確認）
-
-### 3. `CLAUDE.md` と `README.md` を編集する
-
-コピー先のプロジェクトの内容に合わせて書き換えます。
-
-### 4. ドキュメント生成ワークフローを起動する
-
-- 新規アイデアから始める場合: `/brainstorm` → `/gen-all-docs`
-- 既存コードがある場合: `/gen-all-docs`（コードから逆生成）
+| Phase | 範囲 |
+|-------|------|
+| **1（MVP）** | `init` / `ingest` / `query` / `synthesize` ＋ schema/templates。フロントマター骨格（`claude_code_version`/`updated`/`stale`/ティア）と情報源ティア区分メタを含む |
+| 2 | `lint` ＋ 拡張スキーマ（`practice` / `feature`, version baseline）。横断的矛盾スキャン・baseline 鮮度監査 |
+| 3 | session-start hook 設定例・URL 自動取得・overview 自動更新・**Tier A（公式）日次自動更新の先行解禁** |
+| 4 | ソース別取得ツール（X / Medium / Notion / 公式サイト等） |
 
 ## 含まれるもの
 
 | パス | 内容 |
 |------|------|
-| `.claude/commands/` | カスタムスラッシュコマンド（`/plan-feature`, `/implement-feature`, `/validate-code`, `/gen-all-docs` ほか） |
-| `.claude/skills/` | スキル定義（PRD作成、アーキテクチャ設計、機能設計、用語集作成、ドキュメント生成など） |
-| `.claude/agents/` | サブエージェント定義（技術調査、ドキュメントレビュー、実装検証） |
-| `.claude/settings.local.json` | ローカル設定 |
+| `.claude/skills/llm-wiki/` | **主役スキル**（SKILL.md＋`references/{schema,page-templates,lint-rules}.md`）。本プロジェクト限定・グローバル配置やボールトコピーはしない |
+| `.claude/commands/`, `.claude/skills/`, `.claude/agents/` | 知識ハブの運用・保守を支える補助ツール（`/brainstorm` `/gen-all-docs` `/plan-feature` `/implement-feature` 等） |
+| `docs/ideas/` | アイデア・要件ドキュメント（`/brainstorm` の出力。本機能の source of truth） |
 | `docs/core/` | コアドキュメントの出力先（`/gen-all-docs` が生成） |
-| `docs/ideas/` | ブレインストーミングのアウトプット置き場 |
-| `docs/plan/` | 計画ドキュメント置き場 |
-| `.steering/` | `/plan-feature`〜`/implement-feature` の作業ステアリングファイル置き場 |
-| `src/`, `tests/`, `scripts/`, `logs/` | プロジェクトの標準ディレクトリ（空のスケルトン） |
-
-## ドキュメント生成のスケール対応
-
-`/gen-all-docs` はプロジェクト規模を判定して、以下の粒度でドキュメントを生成します:
-
-| 規模 | 生成ドキュメント |
-|------|------------------|
-| 小規模（Claude Code ツール等） | `README.md` + `CLAUDE.md` + `development-guidelines.md` |
-| 中規模 | 上記 + `architecture.md` + `repository-structure.md`（新規時は `product-requirements.md` も） |
-| 大規模（本格アプリ） | 全コアドキュメント + 必要なオプション（`functional-design.md`, `glossary.md`, `api-reference.md`, `diagrams.md`, `CHANGELOG.md`） |
-
-各 Skill（`architecture-design`、`repository-structure`、`functional-design` など）も、この規模別生成方針と整合する形で前提条件を定義しています。
+| `docs/plan/`, `.steering/` | 計画・作業ステアリングファイル置き場 |
+| `wiki-vault -> ...` | 独立 Obsidian ボールトへのシンボリックリンク（`.gitignore` 対象・init が作成） |
 
 ## 推奨ワークフロー
 
+スキル本体の設計・改善は補助ツールで回します。
+
 ```
-（"Use this template" で新規リポジトリ作成）
+/brainstorm          # 要件を docs/ideas/ にまとめる・壁打ち
     ↓
-/initial-setup       # 言語/構造を検出し Commands/Skills を適合、不足ファイルを補完
+/gen-all-docs        # README / CLAUDE.md / development-guidelines を同期
     ↓
-/brainstorm          # アイデアを docs/ideas/ にまとめる（新規プロジェクト時）
+/plan-feature        # llm-wiki スキルの実装計画を .steering/ に作成
     ↓
-/gen-all-docs        # 規模に応じて docs/core/ にコアドキュメントを生成
+/implement-feature   # SKILL.md・references を実装
     ↓
-/plan-feature        # 機能ごとの計画を .steering/ に作成（requirements.md / design.md / tasklist.md）
-    ↓
-/implement-feature   # tasklist.md に従って実装
-    ↓
-/validate-code       # コード品質（リント・型/静的検査・テスト）を検証
-                     #   ※ MCP-only プロジェクトではスキップ
-                     #     （`.mcp.json` のスキーマ検証のみ任意で実施）
-    ↓
-/acceptance-test     # 受け入れ条件（requirements.md / アイデアファイル）の合否を検証
-    ↓
-/update-docs         # 実装をドキュメントに反映
-    ↓
-/review-docs         # ドキュメント品質をレビュー
+/review-docs         # ドキュメント/スキル定義の品質をレビュー
 ```
 
-**MCP-only プロジェクトでの差分:**
-- `/validate-code` はスキップ（独自コードが無いため、リント・型検査・テストの対象がない）。`.mcp.json` の構文チェックのみ任意で実施
-- `/implement-feature` の静的解析・テスト工程も同様にスキップされ、`.mcp.json` の動作確認に置き換わる
-- `/acceptance-test` は引き続き実施可能（受け入れ条件として「特定の MCP サーバーが `.mcp.json` に定義されている」「環境変数が設定されている」などを検証）
+知識の蓄積・運用そのものは、実装後に `/llm-wiki <操作>` で行います。
+
+## 設計上の主要決定
+
+- **検索ではなくコンパイル / 必ず引用 / 黙って上書きしない**
+- **二段の矛盾検出（決定 Z）**: ingest は同一トピックのみ即時照合、横断矛盾は Phase 2 lint へ委譲
+- **フロントマター骨格は MVP から（決定 ア）**: 判定は Phase 2 でもメタは MVP から記録
+- **情報源ティア**: Tier A（公式）は Phase 3 で日次自動更新を先行解禁、Tier B は対話承認制
+- **個人利用前提**: 単一エージェント書き込み・操作ごと Git コミット
+
+詳細は `docs/ideas/20260516-llm-wiki-skill-for-claude-code.md` と `docs/core/development-guidelines.md` を参照。
