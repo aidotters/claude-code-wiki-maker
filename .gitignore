@@ -56,3 +56,8 @@ Thumbs.db
 
 # Local settings (optional - uncomment if needed)
 # .claude/settings.local.json
+
+.steering/
+
+# llm-wiki: 独立 Obsidian ボールトへのシンボリックリンク（実体は別 Git・誤コミット防止）
+wiki-vault
