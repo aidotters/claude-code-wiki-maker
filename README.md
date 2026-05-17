@@ -1,8 +1,8 @@
 # personal-wiki-for-claude-code
 
-> **ステータス: 計画段階**
-> このドキュメントは `docs/ideas/20260516-llm-wiki-skill-for-claude-code.md` から生成されました。
-> 主役機能 `/llm-wiki` は未実装です。実装後は `/update-docs` で実態に同期してください。
+> **ステータス: MVP（Phase 1）実装済み**
+> 主役機能 `/llm-wiki` の `init` / `ingest` / `query` / `synthesize` と
+> schema/templates を `.claude/skills/llm-wiki/` に実装済みです（`lint` は Phase 2）。
 
 進化の速い **Claude Code**（CLI / Agent SDK / API）の知識を、検索ではなく**コンパイル**して蓄積し続ける、**個人の Claude Code 知識ハブ**リポジトリです。
 
@@ -60,7 +60,7 @@ claude
 | パス | 内容 |
 |------|------|
 | `.claude/skills/llm-wiki/` | **主役スキル**（SKILL.md＋`references/{schema,page-templates,lint-rules}.md`）。本プロジェクト限定・グローバル配置やボールトコピーはしない |
-| `.claude/commands/`, `.claude/skills/`, `.claude/agents/` | 知識ハブの運用・保守を支える補助ツール（`/brainstorm` `/gen-all-docs` `/plan-feature` `/implement-feature` 等） |
+| `.claude/skills/`, `.claude/agents/` | 知識ハブの運用・保守を支える補助ツール。`/brainstorm` `/gen-all-docs` `/plan-feature` `/implement-feature` 等はすべて `.claude/skills/` 配下のスキルとして実装（`.claude/commands/` は使用しない） |
 | `docs/ideas/` | アイデア・要件ドキュメント（`/brainstorm` の出力。本機能の source of truth） |
 | `docs/core/` | コアドキュメントの出力先（`/gen-all-docs` が生成） |
 | `docs/plan/`, `.steering/` | 計画・作業ステアリングファイル置き場 |
@@ -82,7 +82,19 @@ claude
 /review-docs         # ドキュメント/スキル定義の品質をレビュー
 ```
 
-知識の蓄積・運用そのものは、実装後に `/llm-wiki <操作>` で行います。
+知識の蓄積・運用そのものは、主役スキル `/llm-wiki` で回します。
+
+```
+/llm-wiki init                 # ボールト初期化・wiki-vault リンク・設定/.gitignore 整備
+    ↓
+/llm-wiki ingest <path-or-url> # ソースを取り込みコンパイル（要約・相互参照・矛盾明示）
+    ↓
+/llm-wiki query <質問>         # index→関連ページの順で引用付き回答（不足は Web 補完を明示）
+    ↓
+/llm-wiki synthesize <テーマ>  # チートシート/Tips 集等を引用付きで生成・再生成
+```
+
+`lint`（孤立/陳腐化/横断矛盾/baseline 鮮度の監査）は Phase 2 で実装予定です。
 
 ## 設計上の主要決定
 

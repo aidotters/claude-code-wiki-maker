@@ -1,8 +1,8 @@
 # 開発ガイドライン（最小構成）
 
-> **ステータス: 計画段階**
+> **ステータス: MVP（Phase 1）実装済み**
 > このドキュメントは `docs/ideas/20260516-llm-wiki-skill-for-claude-code.md` から生成されました。
-> 主役機能 `/llm-wiki` は未実装です。実装後は `/update-docs` で実態に同期してください。
+> 主役機能 `/llm-wiki` の `init` / `ingest` / `query` / `synthesize` は `.claude/skills/llm-wiki/` に実装済みです（`lint` は Phase 2）。スキル改修後は `/update-docs` で実態に同期してください。
 
 このリポジトリは個人の Claude Code 知識ハブで、ビルド対象のアプリケーションコードを持ちません。「開発」とは主に **`.claude/skills/llm-wiki/` のスキル定義の作成・保守**、および **Wiki ボールトの規約の遵守**を指します。本ガイドラインは小規模構成として、テスト/リント/主要規約のみを定義します。
 
