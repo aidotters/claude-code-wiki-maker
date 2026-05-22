@@ -1,8 +1,9 @@
 # personal-wiki-for-claude-code
 
-> **ステータス: MVP（Phase 1）実装済み**
-> 主役機能 `/llm-wiki` の `init` / `ingest` / `query` / `synthesize` と
-> schema/templates を `.claude/skills/llm-wiki/` に実装済みです（`lint` は Phase 2）。
+> **ステータス: MVP（Phase 1）＋ Phase 2a 実装済み**
+> 主役機能 `/llm-wiki` の `init` / `ingest` / `query` / `synthesize` / `lint`（機械判定 7 検査）と
+> schema/templates（practice/feature 含む）を `.claude/skills/llm-wiki/` に実装済みです
+> （`lint` の意味解釈 4 検査は Phase 2b）。
 
 進化の速い **Claude Code**（CLI / Agent SDK / API）の知識を、検索ではなく**コンパイル**して蓄積し続ける、**個人の Claude Code 知識ハブ**リポジトリです。
 
@@ -41,17 +42,18 @@ claude
 | 操作 | 内容 | Phase |
 |------|------|:---:|
 | `init` | ボールト初期化・`./wiki-vault` リンク案内・設定/`.gitignore` 整備 | 1（MVP） |
-| `ingest <path-or-url>` | ソースを取り込み、source ページ生成・相互参照・矛盾は明示 | 1（MVP） |
+| `ingest <path-or-url> [--type=practice\|--feature=<slug>]` | ソースを取り込み、source ページ生成・相互参照・矛盾は明示（`--type`／`--feature` は 2a） | 1（MVP）＋ 2a |
 | `query <質問>` | index → 関連ページの順で読み引用付き回答（不足は Web 補完を明示） | 1（MVP） |
 | `synthesize <テーマ>` | チートシート/Tips 集等を `wiki/syntheses/` に引用付き生成・再生成 | 1（MVP） |
-| `lint` | 孤立/陳腐化/横断的矛盾/信頼度/index 同期/再生成要否を監査 | 2 |
+| `lint [--check=<csv>]` | 孤立/陳腐化/信頼度/index 同期/baseline 鮮度の監査（2a: 機械判定 7 検査・レポートのみ／2b: 意味解釈 4 検査・承認制） | 2a／2b |
 
 ## ロードマップ
 
 | Phase | 範囲 |
 |-------|------|
 | **1（MVP）** | `init` / `ingest` / `query` / `synthesize` ＋ schema/templates。フロントマター骨格（`claude_code_version`/`updated`/`stale`/ティア）と情報源ティア区分メタを含む |
-| 2 | `lint` ＋ 拡張スキーマ（`practice` / `feature`, version baseline）。横断的矛盾スキャン・baseline 鮮度監査 |
+| **2a（実装済み）** | `lint` 機械判定 7 検査（#1/#2/#3/#4/#6/#7/#9・レポートのみ）＋ `practice` / `feature` テンプレ＋ ingest 動線拡張（`--type=practice` / `--feature=<slug>`） |
+| 2b | `lint` 意味解釈 4 検査（#5 横断矛盾・#8 synthesis 再生成要否・#10 3 面相互矛盾・#11 バージョン軸決着、承認制） |
 | 3 | session-start hook 設定例・URL 自動取得・overview 自動更新・**Tier A（公式）日次自動更新の先行解禁** |
 | 4 | ソース別取得ツール（X / Medium / Notion / 公式サイト等） |
 
@@ -92,15 +94,17 @@ claude
 /llm-wiki query <質問>         # index→関連ページの順で引用付き回答（不足は Web 補完を明示）
     ↓
 /llm-wiki synthesize <テーマ>  # チートシート/Tips 集等を引用付きで生成・再生成
+    ↓
+/llm-wiki lint                 # 機械判定 7 検査（Phase 2a 実装済み・レポートのみ）
 ```
 
-`lint`（孤立/陳腐化/横断矛盾/baseline 鮮度の監査）は Phase 2 で実装予定です。
+`lint` の意味解釈 4 検査（#5 横断矛盾・#8 synthesis 再生成要否・#10 3 面相互矛盾・#11 バージョン軸決着）は Phase 2b で実装予定です。
 
 ## 設計上の主要決定
 
 - **検索ではなくコンパイル / 必ず引用 / 黙って上書きしない**
-- **二段の矛盾検出（決定 Z）**: ingest は同一トピックのみ即時照合、横断矛盾は Phase 2 lint へ委譲
-- **フロントマター骨格は MVP から（決定 ア）**: 判定は Phase 2 でもメタは MVP から記録
+- **二段の矛盾検出（決定 Z）**: ingest は同一トピックのみ即時照合、横断矛盾は Phase 2b lint へ委譲
+- **フロントマター骨格は MVP から（決定 ア）**: 機械判定 7 検査は Phase 2a で実装済み、意味解釈 4 検査は Phase 2b
 - **情報源ティア**: Tier A（公式）は Phase 3 で日次自動更新を先行解禁、Tier B は対話承認制
 - **個人利用前提**: 単一エージェント書き込み・操作ごと Git コミット
 
