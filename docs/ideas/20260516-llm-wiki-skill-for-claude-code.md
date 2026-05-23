@@ -1,7 +1,7 @@
 # LLM Wiki Skill for Claude Code（Claude Code 知識の第二の脳）
 
 > 作成日: 2026-05-16
-> ステータス: Phase 1 MVP verified（2026-05-22）/ Phase 2a verified（2026-05-23）/ Phase 2b verified（2026-05-23）/ Phase 3・4 未着手
+> ステータス: Phase 1 MVP verified（2026-05-22）/ Phase 2a verified（2026-05-23）/ Phase 2b implemented（2026-05-23・受け入れテスト未実施）/ Phase 3・4 未着手
 > 優先度: P1
 
 ## 概要
