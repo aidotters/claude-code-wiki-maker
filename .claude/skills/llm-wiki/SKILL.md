@@ -306,7 +306,7 @@ Phase 2a 機械判定 7 検査（#1 孤立 / #2 更新日 30 日超 / #3 `claude
    - 承認分の処理:
      - (i) 該当 `source_slug` を slug にもつ `wiki/sources/<slug>.md` 本文中 `（出典: ...）` の URL を `Edit` で新 URL へ書き換え（`replace_all: false`）。
      - (ii) 当該 raw の `source_url` は変更しない（raw 不変条件）。
-     - (iii) `current-baseline.md` の `migration_pending` から該当エントリを削除（YAML 配列要素の Edit）。
+     - (iii) `current-baseline.md` の `migration_pending` から該当エントリを削除（YAML 配列要素の Edit）。**anchor 戦略**: `old_string` には当該エントリ 4 キー全体（`  - old_url: ...` から `    source_url: ...` まで・前後の `\n` を含む 5 行）を厳密マッチで指定し `replace_all: false`。複数エントリがあっても `old_url` で一意に特定されるため衝突しない。
      - (iv) 1 commit `chore: migrate source_url <slug> <old>→<new>`。本サブステップだけは書き込みを伴うためステップ 0.6 の lock を取得し書き込み完了後に解放する。
    - 0 件選択は何もせず通常検査群へ進む。
 
