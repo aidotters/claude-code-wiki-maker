@@ -1,7 +1,7 @@
 # LLM Wiki Skill for Claude Code（Claude Code 知識の第二の脳）
 
 > 作成日: 2026-05-16
-> ステータス: draft
+> ステータス: Phase 1 MVP verified（2026-05-22）/ Phase 2a verified（2026-05-23）/ Phase 2b・3・4 未着手
 > 優先度: P1
 
 ## 概要
@@ -37,12 +37,12 @@ Karpathy の「LLM Wiki」パターン（検索ではなくコンパイル）を
 2. **wiki/** — エージェントが完全所有するコンパイル済み Markdown ページ群
 3. **スキル（スキーマ）** — エージェントを規律あるメンテナーにする規約とワークフロー
 
-Wiki の実体は**独立した Obsidian ボールト**（例: `~/Documents/ClaudeCodeWiki`、別 Git でバージョン管理）に置く。Obsidian はグラフビュー/バックリンク/閲覧用の表示レイヤー。スキルは**本リポジトリ（個人 Claude Code 知識ハブ専用リポジトリ）のみ**に `.claude/skills/llm-wiki/` として実装し、**ユーザーグローバル配置やボールトへのコピーはしない**。本プロジェクトからボールトを参照するため、本プロジェクト直下にシンボリックリンク `./wiki-vault` を 1 本張る（実体は分離・論理的に参照可能）。スキルは単一スキル `/llm-wiki <操作>` として SKILL.md 内でモード分岐する（独立スラッシュコマンド・skill 同梱 hooks は作らない）。
+Wiki の実体は**独立した Obsidian ボールト**（例: `~/Documents/claude-code-wiki`、別 Git でバージョン管理）に置く。Obsidian はグラフビュー/バックリンク/閲覧用の表示レイヤー。スキルは**本リポジトリ（個人 Claude Code 知識ハブ専用リポジトリ）のみ**に `.claude/skills/llm-wiki/` として実装し、**ユーザーグローバル配置やボールトへのコピーはしない**。本プロジェクトからボールトを参照するため、本プロジェクト直下にシンボリックリンク `./wiki-vault` を 1 本張る（実体は分離・論理的に参照可能）。スキルは単一スキル `/llm-wiki <操作>` として SKILL.md 内でモード分岐する（独立スラッシュコマンド・skill 同梱 hooks は作らない）。
 
 ```
 # 想定ワークフロー（本プロジェクトで claude を起動。CWD ≠ ボールト）
 cd ~/Projects/personal-wiki-for-claude-code
-ln -s ~/Documents/ClaudeCodeWiki ./wiki-vault   # 初回のみ（init が案内）
+ln -s ~/Documents/claude-code-wiki ./wiki-vault   # 初回のみ（init が案内）
 claude
 > /llm-wiki init
 > /llm-wiki ingest https://medium.com/.../some-claude-code-best-practice
@@ -271,9 +271,9 @@ personal-wiki-for-claude-code/        # 個人 Claude Code 知識ハブ専用リ
 │   ├── SKILL.md
 │   └── references/{schema.md,page-templates.md,lint-rules.md}  # session-start hook は設定例として記載
 ├── .gitignore                        # wiki-vault を追記
-└── wiki-vault -> ~/Documents/ClaudeCodeWiki   # シンボリックリンク（gitignore 対象）
+└── wiki-vault -> ~/Documents/claude-code-wiki   # シンボリックリンク（gitignore 対象）
 
-~/Documents/ClaudeCodeWiki/           # 実体（独立 Obsidian ボールト・別 Git。.claude は持たない）
+~/Documents/claude-code-wiki/           # 実体（独立 Obsidian ボールト・別 Git。.claude は持たない）
 ├── raw/{docs,articles,videos,github,notes}/
 └── wiki/{sources,concepts,entities,comparisons,syntheses,practices,features}/
     ├── index.md
@@ -323,3 +323,4 @@ personal-wiki-for-claude-code/        # 個人 Claude Code 知識ハブ専用リ
 - 2026-05-22: MVP 受け入れ条件の達成状況を検証し、Phase 1 対象 21 項目を [x] に更新（README 再構成は commit 942ca3c で完了済、ingest/synthesize はボールト実機で実行済）。Phase 2 対象 6 項目は予定通り未着手のまま [ ]
 - 2026-05-22: Phase 2 開始ブレインストーミングを実施し、以下を反映 — Phase 2 を 2a（機械判定 7 検査・レポートのみ＋ practice/feature テンプレ＋ ingest 動線拡張）と 2b（意味解釈 4 検査・承認制）に分割。受け入れ条件は機械判定（#1/#2/#3/#4/#6/#7/#9）を 2a、意味解釈（#5/#8/#10/#11）を 2b に振り分け。決定 Z 二段目（#5 横断矛盾）は受け入れ条件上 Phase 2 だったが意味解釈系のため 2b へ下ろす。Phase 2a lint は不変条件「黙って上書きしない」と整合させて完全レポートのみ（`stale:true` 自動付与・index 自動補完もしない）。起動は一括＋ `--check=<csv>` 部分実行。severity 3 段。出力は対話全件＋ log.md サマリ追記。走査戦略はフロントマター集約と index.md 1 回読みでコンテキスト圧迫を回避。ingest 動線は非対称 2 引数 `--type=practice` ／ `--feature=<slug>` を追加（無指定時の既存挙動は不変）。実機 vault は MVP 規約に完全準拠していることを確認（着手前修正不要、ただし lint 動作確認用 fixture は実装計画段階で別途用意）
 - 2026-05-23: Phase 2a を実装完了。schema v1.1.0→v1.2.0（practice/feature を ✅ に解禁、page-templates.md に本文スケルトン追記、co-evolution の repo A／ボールト両側を同期）／lint-rules.md に 7 検査の判定ロジック・しきい値表（30/60/90 日・0.7）・走査戦略・fixture カタログ（17 ケース）を明文化／SKILL.md モード L を Phase 2a 機械判定 7 検査に置換（log.md 追記のみで他書き込みなし）、モード B に `--type=practice` ／ `--feature=<slug>` の非対称 2 引数を追加。実機 vault で lint を 1 回実行（vault commit 4f270bb）— 警告 1 件（#3 version bg-detach-note-2-0-5）のみ発火・他検査は適切に検出なしを返却・log.md 追記以外の書き込み無しを git diff で確認。残り 6 検査の発火確認は fixture カタログでスペック検証済みとして扱う。Phase 2a 受け入れ条件 9 項目を [x] 化。
+- 2026-05-23: Phase 2a 受け入れテスト完了（`.steering/20260522-llm-wiki-phase-2a/acceptance-test-report.md` 総合判定 PASS）。`lint-fixture-test` ブランチを切って fixture セット（`_fixture-orphan` / `_fixture-multi` / `_fixture-ghost` / baseline updated を 2026-02-15 へ一時書換）を仕込み、`/llm-wiki lint` 一括実行で 9 件検出（要対応 4 / 警告 4 / 情報 1、`orphan=1, updated=1, version=2, stale=1, confidence=1, index=2, baseline=1`）— 7 検査キーすべて発火確認（vault commit 9840f8d）。続いて `/llm-wiki lint --check=stale,baseline` で部分実行 2 件のみ発火・他 5 検査スキップを確認（vault commit 21e453d）。両実行で lint 起因の差分は `wiki/log.md` のみ＝不変条件遵守を `git status` で確認。確認完了後、ブランチ破棄＋作業ツリー残存分（git restore / rm）でボールトを MVP 規約完全準拠状態に復帰。requirements.md 26 項目すべて [x]、ボールトパス変更（ClaudeCodeWiki → claude-code-wiki）も .llm-wiki.json / wiki-vault シンボリックリンクおよび関連ドキュメントへ反映済み。Phase 2a の機能スコープは verified、Phase 2b 以降は未着手。
