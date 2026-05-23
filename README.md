@@ -1,9 +1,9 @@
 # personal-wiki-for-claude-code
 
-> **ステータス: MVP（Phase 1）＋ Phase 2a 実装済み**
-> 主役機能 `/llm-wiki` の `init` / `ingest` / `query` / `synthesize` / `lint`（機械判定 7 検査）と
-> schema/templates（practice/feature 含む）を `.claude/skills/llm-wiki/` に実装済みです
-> （`lint` の意味解釈 4 検査は Phase 2b）。
+> **ステータス: MVP（Phase 1）＋ Phase 2a・2b 実装済み**
+> 主役機能 `/llm-wiki` の `init` / `ingest` / `query` / `synthesize` / `lint`（機械判定 7 検査＋
+> 意味解釈 4 検査・#11 のみ承認制で `## 矛盾` 末尾に決着注記を追記）と
+> schema/templates（practice/feature 含む）を `.claude/skills/llm-wiki/` に実装済みです。
 
 進化の速い **Claude Code**（CLI / Agent SDK / API）の知識を、検索ではなく**コンパイル**して蓄積し続ける、**個人の Claude Code 知識ハブ**リポジトリです。
 
@@ -53,7 +53,7 @@ claude
 |-------|------|
 | **1（MVP）** | `init` / `ingest` / `query` / `synthesize` ＋ schema/templates。フロントマター骨格（`claude_code_version`/`updated`/`stale`/ティア）と情報源ティア区分メタを含む |
 | **2a（実装済み）** | `lint` 機械判定 7 検査（#1/#2/#3/#4/#6/#7/#9・レポートのみ）＋ `practice` / `feature` テンプレ＋ ingest 動線拡張（`--type=practice` / `--feature=<slug>`） |
-| 2b | `lint` 意味解釈 4 検査（#5 横断矛盾・#8 synthesis 再生成要否・#10 3 面相互矛盾・#11 バージョン軸決着、承認制） |
+| **2b（実装済み）** | `lint` 意味解釈 4 検査（#5 横断矛盾・#8 synthesis 再生成要否・#10 3 面相互矛盾・#11 バージョン軸決着、承認制。#11 のみ `## 矛盾` 末尾に決着注記を追記） |
 | 3 | session-start hook 設定例・URL 自動取得・overview 自動更新・**Tier A（公式）日次自動更新の先行解禁** |
 | 4 | ソース別取得ツール（X / Medium / Notion / 公式サイト等） |
 
@@ -95,16 +95,16 @@ claude
     ↓
 /llm-wiki synthesize <テーマ>  # チートシート/Tips 集等を引用付きで生成・再生成
     ↓
-/llm-wiki lint                 # 機械判定 7 検査（Phase 2a 実装済み・レポートのみ）
+/llm-wiki lint                 # 11 検査（Phase 2a 7 機械判定＋ Phase 2b 4 意味解釈・#11 のみ承認制で `## 矛盾` 末尾に決着注記）
 ```
 
-`lint` の意味解釈 4 検査（#5 横断矛盾・#8 synthesis 再生成要否・#10 3 面相互矛盾・#11 バージョン軸決着）は Phase 2b で実装予定です。
+`lint` の意味解釈 4 検査（#5 横断矛盾・#8 synthesis 再生成要否・#10 3 面相互矛盾・#11 バージョン軸決着）は Phase 2b で実装済みです。
 
 ## 設計上の主要決定
 
 - **検索ではなくコンパイル / 必ず引用 / 黙って上書きしない**
-- **二段の矛盾検出（決定 Z）**: ingest は同一トピックのみ即時照合、横断矛盾は Phase 2b lint へ委譲
-- **フロントマター骨格は MVP から（決定 ア）**: 機械判定 7 検査は Phase 2a で実装済み、意味解釈 4 検査は Phase 2b
+- **二段の矛盾検出（決定 Z）**: ingest は同一トピックのみ即時照合、横断矛盾は Phase 2b lint で実装済み
+- **フロントマター骨格は MVP から（決定 ア）**: 機械判定 7 検査は Phase 2a、意味解釈 4 検査は Phase 2b で実装済み
 - **情報源ティア**: Tier A（公式）は Phase 3 で日次自動更新を先行解禁、Tier B は対話承認制
 - **個人利用前提**: 単一エージェント書き込み・操作ごと Git コミット
 
