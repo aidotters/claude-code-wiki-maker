@@ -5,7 +5,7 @@
 > 引用記法・[[wikilink]] 規約・命名規約も `references/schema.md` §3 を参照。
 >
 > MVP（Phase 1）テンプレートは `source / concept / entity / comparison / synthesis` の 5 タイプ。
-> `practice` / `feature` は Phase 2 予約（末尾に節見出しのみ）。
+> `practice` / `feature` は Phase 2a で実装解禁（末尾に本文スケルトン追加）。
 
 共通ルール:
 
@@ -159,10 +159,70 @@
 
 ---
 
-## practice（⏳ Phase 2 予約）
+## practice
 
-Phase 2 で定義する。MVP では生成しない（試した実践とその効果を記録するタイプ）。
+試した Claude Code 実践とその効果を記録するタイプ。`wiki/practices/` に配置。
+入力は基本 `raw/notes/` のユーザーメモを想定。ingest は `--type=practice` で起動する。
 
-## feature（⏳ Phase 2 予約）
+```markdown
+---
+# schema.md §2 に従い充填（type: practice）
+---
 
-Phase 2 で定義する。MVP では生成しない（Claude Code 機能ごとの最新仕様・バージョン追従対象）。
+# {実践名}
+
+## 試した内容
+{何を試したか・どのバージョンの Claude Code でか}（出典: raw/notes/...）
+
+## 文脈・前提
+{どんな状況・タスクで試したか}
+
+## 結果
+- 効いた点: {具体的な観察}（出典: raw/...）
+- 効かなかった点: {具体的な観察}（出典: raw/...）
+
+## 結論
+{この実践を採るべきか・条件付きか}（[[related-feature]] / [[related-concept]] へリンク）
+
+## 関連
+- [[related-page]]
+
+## 矛盾
+{他 practice / feature と矛盾があれば両論併記。無ければ「現時点で矛盾なし」}
+```
+
+---
+
+## feature
+
+Claude Code 自体の機能（Skill/Hooks/MCP/Agent SDK 等）ごとの最新仕様まとめ。
+`wiki/features/` に配置。バージョン追従・陳腐化管理の対象。
+ingest は `--feature=<slug>` で source 生成と同時に更新する。
+
+```markdown
+---
+# schema.md §2 に従い充填（type: feature。tier: A 想定）
+---
+
+# {機能名（Skill / Hooks / MCP / Agent SDK 等）}
+
+## 機能概要
+{この Claude Code 機能の役割を 2〜4 行}（出典: raw/docs/...）
+
+## バージョン別仕様差分
+| version | 変更点 | 出典 |
+|---------|--------|------|
+| {ver} | {変更点} | raw/docs/... |
+
+## 推奨用法
+- {ベストプラクティス 1}（出典: raw/...）
+
+## 既知の落とし穴
+- {落とし穴 1}（出典: [[practice-page]] / raw/...）
+
+## 関連
+- [[related-feature]] / [[related-practice]]
+
+## 矛盾
+{矛盾があれば両論併記。無ければ「現時点で矛盾なし」}
+```
