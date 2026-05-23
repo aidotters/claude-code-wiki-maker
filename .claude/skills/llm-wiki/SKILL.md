@@ -311,12 +311,15 @@ Phase 2a 機械判定 7 検査（#1 孤立 / #2 更新日 30 日超 / #3 `claude
    3. **選択 0 件** → 追記なし・コミットなしで終了。候補は対話レポートに残る。
    4. **選択ページごとの末尾アンカー手順**:
       a. 該当ページの `## 矛盾` セクション末尾を Read で確認（既に限定 Read 済みデータを使用可）。
-      b. 既に「**決着（**」で始まる行がセクション内にあればスキップ（二重追記回避）。
+      b. 既に決着行（`references/lint-rules.md` §「#11 決着注記の正規記法」の二重追記回避規約）が
+         セクション内にあればスキップ。
       c. セクション末尾の最終非空行を取得し、Edit で
          - `old_string` = 最終非空行（そのまま）
-         - `new_string` = 最終非空行 + `\n` + `**決着（YYYY-MM-DD）**: 時系列解決（v_old→v_new、Tier X が新）`
+         - `new_string` = 最終非空行 + `\n` + 決着行（記法は `references/lint-rules.md`
+           §「#11 決着注記の正規記法」の正規記法に従う。SKILL.md では再記述しない）
          - `replace_all: false` 厳守
-      d. `wiki/log.md` のサマリ直下に「決着適用: `<slug>` (v_old→v_new, Tier X→Tier Y, YYYY-MM-DD)」を 1 行追記。
+      d. `wiki/log.md` のサマリ直下に決着行を 1 行追記する（記法は `references/lint-rules.md`
+         §「#11 決着適用時の log.md 追記フォーマット」を参照）。
    5. **決着適用コミット**: 追記が 1 件以上発生したらボールト Git で
       `chore: llm-wiki lint resolve (YYYY-MM-DD)` でコミット（`## 矛盾` 編集と log.md 追記をまとめる）。
       レポートコミット（ステップ 7）とは分離する。
