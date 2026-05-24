@@ -2,13 +2,15 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-> **ステータス: MVP（Phase 1）＋ Phase 2a・2b・3a 実装済み**
+> **ステータス: MVP（Phase 1）＋ Phase 2a・2b・3a・3b 実装済み**
 > このリポジトリは `docs/ideas/20260516-llm-wiki-skill-for-claude-code.md`（決定 A）に基づき、
 > 「テンプレート」から「個人 Claude Code 知識ハブ専用リポジトリ」へ役割転換しました。
 > 主役機能 `/llm-wiki` の `init` / `ingest` / `query` / `synthesize` / `lint`（Phase 2a 機械判定 7 検査＋
 > Phase 2b 意味解釈 4 検査・#11 のみ承認制で `## 矛盾` 末尾に決着注記を追記＋
 > Phase 3a `#12 last-tier-a-refresh` 機械判定）/ `refresh-tier-a [--dry-run]`（Phase 3a・
-> Tier A 日次自動再取得・launchd/cron からの非対話実行）と schema/templates（practice/feature 含む）を
+> Tier A 日次自動再取得・launchd/cron からの非対話実行・Phase 3b で F-5 空 commit ガード追加）と
+> Phase 3b の session-start hook 設定例（`references/session-start-hook.example.json`・利用者が
+> `.claude/settings.json` に手動マージ）、schema/templates（practice/feature 含む）を
 > `.claude/skills/llm-wiki/` に実装済みです。
 > スキル改修後は `/update-docs` で本ファイルを実態へ同期してください。
 

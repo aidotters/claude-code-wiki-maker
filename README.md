@@ -1,9 +1,11 @@
 # personal-wiki-for-claude-code
 
-> **ステータス: MVP（Phase 1）＋ Phase 2a・2b・3a 実装済み**
+> **ステータス: MVP（Phase 1）＋ Phase 2a・2b・3a・3b 実装済み**
 > 主役機能 `/llm-wiki` の `init` / `ingest` / `query` / `synthesize` / `lint`（機械判定 8 検査＋
 > 意味解釈 4 検査・#11 のみ承認制で `## 矛盾` 末尾に決着注記を追記）と
-> `refresh-tier-a [--dry-run]`（Tier A 日次自動再取得・launchd/cron からの非対話実行）と
+> `refresh-tier-a [--dry-run]`（Tier A 日次自動再取得・launchd/cron からの非対話実行・
+> Phase 3b で F-5 空 commit ガード追加）と Phase 3b の session-start hook 設定例
+> （`references/session-start-hook.example.json`・利用者が `.claude/settings.json` に手動マージ）、
 > schema/templates（practice/feature 含む）を `.claude/skills/llm-wiki/` に実装済みです。
 
 進化の速い **Claude Code**（CLI / Agent SDK / API）の知識を、検索ではなく**コンパイル**して蓄積し続ける、**個人の Claude Code 知識ハブ**リポジトリです。
@@ -47,7 +49,7 @@ claude
 | `query <質問>` | index → 関連ページの順で読み引用付き回答（不足は Web 補完を明示） | 1（MVP） |
 | `synthesize <テーマ>` | チートシート/Tips 集等を `wiki/syntheses/` に引用付き生成・再生成 | 1（MVP） |
 | `lint [--check=<csv>]` | 孤立/陳腐化/信頼度/index 同期/baseline 鮮度/refresh 停止の監査（2a: 機械判定 7 検査・レポートのみ／2b: 意味解釈 4 検査・承認制／3a: #12 last-tier-a-refresh 機械判定） | 2a／2b／3a |
-| `refresh-tier-a [--dry-run]` | Tier A 既知 URL の日次自動再取得・再コンパイル・`current-baseline.md` baseline フィールド自動更新（launchd/cron からの非対話実行・モード F）。`--dry-run` は副作用ゼロのレポートのみ | 3a |
+| `refresh-tier-a [--dry-run]` | Tier A 既知 URL の日次自動再取得・再コンパイル・`current-baseline.md` baseline フィールド自動更新（launchd/cron からの非対話実行・モード F）。`--dry-run` は副作用ゼロのレポートのみ。Phase 3b で同日 2 回目の `last_tier_a_refresh` 空 commit をガード | 3a／3b |
 
 ## ロードマップ
 
@@ -57,8 +59,9 @@ claude
 | **2a（実装済み）** | `lint` 機械判定 7 検査（#1/#2/#3/#4/#6/#7/#9・レポートのみ）＋ `practice` / `feature` テンプレ＋ ingest 動線拡張（`--type=practice` / `--feature=<slug>`） |
 | **2b（実装済み）** | `lint` 意味解釈 4 検査（#5 横断矛盾・#8 synthesis 再生成要否・#10 3 面相互矛盾・#11 バージョン軸決着、承認制。#11 のみ `## 矛盾` 末尾に決着注記を追記） |
 | **3a（実装済み）** | `/llm-wiki refresh-tier-a` + ロック規約（`.llm-wiki.lock`）＋ lint #12 `last-tier-a-refresh`（refresh 停止監視）。launchd plist 例同梱・schema v1.3.0 で baseline フィールド追加 |
-| 3b | session-start hook 設定例・会話中の URL 自動取り込み・overview 自動更新（未設計） |
+| **3b（実装済み）** | session-start hook 設定例（`references/session-start-hook.example.json`・利用者が手動マージ・`wiki/current-baseline.md` を ambient context にロード）＋ F-5 空 commit ガード（`last_tier_a_refresh` 値変化時のみ commit） |
 | 3c | `/llm-wiki discover-tier-a`（Tier A 公式 docs の未取り込み URL を自動発見・初期登録、未設計） |
+| 3d | 会話中の URL 自動取り込み・overview 自動更新・migration_pending 承認後 ingest フロー・log.md append 規約見直し（未設計） |
 | 4 | ソース別取得ツール（X / Medium / Notion / 公式サイト等） |
 
 ## 含まれるもの
