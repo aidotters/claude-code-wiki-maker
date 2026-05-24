@@ -1,0 +1,21 @@
+{
+  "_comment": "session-start hook 設定例。.claude/settings.json にマージして使用（project local 推奨）。グローバル ~/.claude/settings.json への登録は非推奨（他プロジェクトでも発火）。CWD = リポジトリルート前提（claude を ./ から起動）。vault 不在時は || true で無音終了。",
+  "_notes": [
+    "matcher を 'startup' に narrow すると clear / compact では再注入しない",
+    "ロード対象を overview.md / index.md に拡張可（command の cat を差し替え）",
+    "command body は POSIX shell 互換にとどめている"
+  ],
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "[ -L ./wiki-vault ] && cat ./wiki-vault/wiki/current-baseline.md 2>/dev/null || true"
+          }
+        ]
+      }
+    ]
+  }
+}
