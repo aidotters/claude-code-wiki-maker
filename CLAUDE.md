@@ -36,7 +36,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | `/llm-wiki lint [--check=<csv>]` | 健全性・陳腐化・信頼度の監査（2a: 機械判定 7 検査・レポートのみ／2b: 意味解釈 4 検査・承認制／3a: #12 last-tier-a-refresh 機械判定） | 2a／2b／3a |
 | `/llm-wiki refresh-tier-a [--dry-run]` | Tier A（公式 docs / 公式 GitHub）の既知 URL を日次自動再取得・再コンパイル・`current-baseline.md` の baseline フィールド自動更新。launchd/cron 経由の非対話実行（モード F）。`--dry-run` は副作用ゼロのレポートのみ | 3a |
 
-ロードマップ: Phase 2a（**実装済み**）= 機械判定 lint 7 検査＋ practice/feature テンプレ＋ ingest 動線拡張 / Phase 2b（**実装済み**）= 意味解釈 lint 4 検査（横断矛盾・synthesis 再生成要否・3 面相互矛盾・バージョン軸決着、承認制） / Phase 3a（**実装済み**）= `/llm-wiki refresh-tier-a` + ロック規約 + lint #12（refresh 停止監視） / Phase 3b = session-start hook 設定例・会話中の URL 自動取り込み・overview 自動更新（未設計） / Phase 3c = `/llm-wiki discover-tier-a`（未取り込み URL の自動発見、未設計） / Phase 4 = ソース別取得ツール。
+ロードマップ: Phase 2a（**実装済み**）= 機械判定 lint 7 検査＋ practice/feature テンプレ＋ ingest 動線拡張 / Phase 2b（**実装済み**）= 意味解釈 lint 4 検査（横断矛盾・synthesis 再生成要否・3 面相互矛盾・バージョン軸決着、承認制） / Phase 3a（**実装済み**）= `/llm-wiki refresh-tier-a` + ロック規約 + lint #12（refresh 停止監視） / Phase 3b（**実装済み**）= session-start hook 設定例（read-only context preload）＋ F-5 空 commit ガード / Phase 3c = `/llm-wiki discover-tier-a`（未取り込み URL の自動発見、未設計） / Phase 3d = 会話中の URL 自動取り込み・overview 自動更新（未設計） / Phase 4 = ソース別取得ツール。
 
 ### 既存のドキュメント生成系コマンド/スキル
 
