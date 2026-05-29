@@ -395,6 +395,8 @@ Phase 2a 機械判定 7 検査（#1 孤立 / #2 更新日 30 日超 / #3 `claude
 
    ステップ 5–7 の検査全件レポート出力＋レポートコミット**後**に起動する。
 
+   **overview 更新なし（Phase 3d）**: 本サブステップは `## 矛盾` 末尾 1 行追記＋ log.md 決着行追記のみで、`wiki/overview.md` は不可触（source ページ統計に変化なしのため。`references/schema.md` §8.4 更新タイミング表参照）。書き込みモードであっても overview 自動更新は走らない。
+
    1. **候補の選別**: #11 の時系列 supersession 候補をリスト化する。5 件超なら上位 4 件のみ提示
       （AskUserQuestion の選択肢上限 4 件）。ソート順: severity 高い順（要対応 > 情報）→ version 差大きい順
       （major 桁差 > minor 桁差）。残りは対話レポートに「次回 lint で再検出可」と明示。
