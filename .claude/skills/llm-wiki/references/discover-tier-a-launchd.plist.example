@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  /llm-wiki discover-tier-a 用 launchd plist テンプレ（Phase 3c 同梱）
+
+  このファイルは **例（テンプレ）** です。`launchctl load` は利用者の手動操作です（自動配置はしません）。
+  refresh-tier-a-launchd.plist.example と同型。差分は Label / ProgramArguments（--no-prompt 付与）/
+  起動時刻（refresh と別時刻＝lock 競合回避）/ ログファイル名。
+
+  使い方:
+    1. 下記の <<REPLACE_REPO_PATH>> / <<REPLACE_USER>> を実値に置換
+       例:
+         REPO=/Users/<you>/Projects/personal-wiki-for-claude-code
+         sed -i '' "s#<<REPLACE_REPO_PATH>>#${REPO}#g" \
+           "${REPO}/.claude/skills/llm-wiki/references/discover-tier-a-launchd.plist.example"
+    2. ~/Library/LaunchAgents/ に **コピー**して plist を配置（例ファイルそのものを load しない）
+         cp .claude/skills/llm-wiki/references/discover-tier-a-launchd.plist.example \
+           ~/Library/LaunchAgents/local.llm-wiki-discover-tier-a.plist
+    3. launchctl load ~/Library/LaunchAgents/local.llm-wiki-discover-tier-a.plist
+    4. 動作確認のため一度だけ手動起動:
+         launchctl start local.llm-wiki-discover-tier-a
+       以降は StartCalendarInterval（既定 日曜 04:00 ローカル）で自動起動。
+    5. 解除するときは:
+         launchctl unload ~/Library/LaunchAgents/local.llm-wiki-discover-tier-a.plist
+         rm  ~/Library/LaunchAgents/local.llm-wiki-discover-tier-a.plist
+
+  StandardOutPath / StandardErrorPath の既定は vault 直下の隠しログファイル。
+  vault Git の意図しないコミットを避けるため、vault `.gitignore` に次の 2 行を追加してください:
+    .discover-tier-a-out.log
+    .discover-tier-a-err.log
+
+  -- 各設定キーの意図 --
+
+  ProgramArguments:
+    `claude --print '/llm-wiki discover-tier-a --no-prompt' --allowedTools=Read,Write,Edit,Bash,Grep,Glob,WebFetch`
+    の固定起動。
+    - **`--no-prompt` 必須**: 非対話（launchd / cron）では AskUserQuestion を起動できないため、
+      discovery + pending_discoveries への append のみを行う（承認制 ingest は対話セッションで別途実施）。
+      `--no-prompt` を付けないと AskUserQuestion 待ちで処理がハングする。
+    - `--allowedTools=` は **`=` 形式必須**。Claude CLI は variadic 引数を取るため
+      スペース区切り（`--allowedTools <list>`）にすると後続の prompt 位置引数を
+      食い込む既知の罠がある（spike で確認・memory: claude-code-cli-allowedtools-variadic）。
+    - `Bash` は sitemap 取得（`curl`）と GitHub 列挙（`gh api`）に必須。`gh` が PATH に
+      含まれていないと GitHub 経路が skip される（エラーハンドリング表参照）。
+
+  EnvironmentVariables (HOME / PATH / USER / LOGNAME / SHELL の 5 変数):
+    launchd は sanitized env でプロセスを起動するため、最低限以下の 5 変数を明示しないと
+    macOS keychain auth が解決できず `Not logged in` で fail する
+    （spike で確認・memory: claude-code-keychain-auth-env-vars）。
+    PATH には `gh` CLI の所在（Homebrew の場合 /opt/homebrew/bin）を必ず含める
+    （GitHub 経路の `gh api` 実行に必要）。
+
+  WorkingDirectory:
+    本リポジトリ直下を CWD にする必要がある（`.llm-wiki.json` を本リポジトリ直下から相対解決するため）。
+
+  StartCalendarInterval:
+    既定 **日曜 04:00 ローカル**（Weekday=0）。refresh-tier-a（既定 毎日 03:00）と:
+    - **時刻をずらす**（03:00 vs 04:00）ことで `.llm-wiki.lock` の競合を避ける
+      （refresh は通常数分で完了し lock を解放するため、04:00 には解放済みの想定）。
+    - discover は新規 URL 発見が目的で日次の必要性が低いため週次。lint #13 の停止監視閾値
+      （既定 14 日）に対し週 1 起動なら余裕で監視内に収まる。
+    別頻度にしたい場合は Weekday / Hour / Minute を編集（毎日にしても dedup により定常状態では
+    append 0 件の no-op になるため害はない）。
+
+  RunAtLoad:
+    false（load 時の即時起動はしない・想定外の二重実行回避）。
+
+  ANTHROPIC_API_KEY:
+    通常は keychain 経由で解決するため plist に埋めない。
+    上記 5 変数を満たしても auth で fail する場合のみ、最後の手段として追加。
+
+-->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>local.llm-wiki-discover-tier-a</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>claude</string>
+        <string>--print</string>
+        <string>/llm-wiki discover-tier-a --no-prompt</string>
+        <string>--allowedTools=Read,Write,Edit,Bash,Grep,Glob,WebFetch</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string><<REPLACE_REPO_PATH>></string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>HOME</key>
+        <string>/Users/<<REPLACE_USER>></string>
+        <key>USER</key>
+        <string><<REPLACE_USER>></string>
+        <key>LOGNAME</key>
+        <string><<REPLACE_USER>></string>
+        <key>SHELL</key>
+        <string>/bin/zsh</string>
+        <key>PATH</key>
+        <string>/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin:/Users/<<REPLACE_USER>>/.local/bin</string>
+    </dict>
+
+    <key>StandardOutPath</key>
+    <string><<REPLACE_REPO_PATH>>/wiki-vault/.discover-tier-a-out.log</string>
+    <key>StandardErrorPath</key>
+    <string><<REPLACE_REPO_PATH>>/wiki-vault/.discover-tier-a-err.log</string>
+
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Weekday</key>
+        <integer>0</integer>
+        <key>Hour</key>
+        <integer>4</integer>
+        <key>Minute</key>
+        <integer>0</integer>
+    </dict>
+
+    <key>RunAtLoad</key>
+    <false/>
+
+    <key>KeepAlive</key>
+    <false/>
+</dict>
+</plist>
