@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-> **ステータス: MVP（Phase 1）＋ Phase 2a・2b・3a・3b・3d 実装済み**
+> **ステータス: MVP（Phase 1）＋ Phase 2a・2b・3a・3b・3d・3c 実装済み**
 > このリポジトリは `docs/ideas/20260516-llm-wiki-skill-for-claude-code.md`（決定 A）に基づき、
 > 「テンプレート」から「個人 Claude Code 知識ハブ専用リポジトリ」へ役割転換しました。
 > 主役機能 `/llm-wiki` の `init` / `ingest`（Phase 3d 共通 surface 拡張：migration_pending 承認後 ingest を内包、
@@ -13,10 +13,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 > 共通 surface 経由に再定義）/ `refresh-tier-a [--dry-run]`（Phase 3a・Tier A 日次自動再取得・
 > launchd/cron からの非対話実行・Phase 3b で F-5 空 commit ガード追加・Phase 3d で F-2 dirty check
 > から log.md を除外＝pathspec `:!wiki/log.md`、F-4e に sources: append 仕様再掲、
-> F-4g/F-5 に overview inline 更新追加）と Phase 3b の session-start hook 設定例
+> F-4g/F-5 に overview inline 更新追加）/ `discover-tier-a [--no-prompt|--dry-run]`（Phase 3c・Tier A
+> 公式 docs/GitHub の未取り込み URL を自動発見＝`code.claude.com/docs/en/*` sitemap + `anthropics/claude-code`
+> の CHANGELOG/README、`pending_discoveries[]` に dedup append、承認制で共通 surface 経由 ingest、
+> `--no-prompt` で launchd/cron 非対話 discovery、lint #13 で停止監視）と Phase 3b の session-start hook 設定例
 > （`references/session-start-hook.example.json`・利用者が `.claude/settings.json` に手動マージ）、
 > schema/templates（practice/feature 含む・schema v1.4.0 で overview.md `## 現状` セクション構造定義と
-> log.md dirty append 規約を追加）を `.claude/skills/llm-wiki/` に実装済みです。
+> log.md dirty append 規約を追加・v1.4.1 で `platform.claude.com` を Tier A 追加・v1.5.0 で
+> `last_discover_tier_a_run` / `pending_discoveries[]` を追加）を `.claude/skills/llm-wiki/` に実装済みです。
 > スキル改修後は `/update-docs` で本ファイルを実態へ同期してください。
 
 ## Project Overview
@@ -40,8 +44,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 | `/llm-wiki synthesize <テーマ>` | チートシート/Tips 集等の派生成果物を生成・再生成（3d: overview 自動更新 inline） | 1（MVP）＋ 3d |
 | `/llm-wiki lint [--check=<csv>]` | 健全性・陳腐化・信頼度の監査（2a: 機械判定 7 検査・レポートのみ／2b: 意味解釈 4 検査・承認制／3a: #12 last-tier-a-refresh 機械判定／3d: §2.5 migration_pending 提案フローを共通 surface 経由に再定義） | 2a／2b／3a／3d |
 | `/llm-wiki refresh-tier-a [--dry-run]` | Tier A（公式 docs / 公式 GitHub）の既知 URL を日次自動再取得・再コンパイル・`current-baseline.md` の baseline フィールド自動更新。launchd/cron 経由の非対話実行（モード F）。`--dry-run` は副作用ゼロのレポートのみ。3d で F-2 dirty check から log.md 除外・F-4e sources: append 仕様再掲・F-4g/F-5 overview inline 更新 | 3a／3d |
+| `/llm-wiki discover-tier-a [--no-prompt\|--dry-run]` | Tier A 公式 docs / 公式 GitHub の**未取り込み URL を自動発見**（α scope = `code.claude.com/docs/en/*` sitemap + `anthropics/claude-code` の `CHANGELOG.md`/`README.md`）し、`current-baseline.md.pending_discoveries[]` に dedup append、承認制で共通 surface（モード B）経由 ingest（モード G）。`--no-prompt` は launchd/cron 用（discovery + append のみ・AskUserQuestion 不発火）、`--dry-run` は副作用ゼロ。discovery scope ≠ refresh scope（§F-3 不可触）。lint #13 で停止監視 | 3c |
 
-ロードマップ: Phase 2a（**実装済み**）= 機械判定 lint 7 検査＋ practice/feature テンプレ＋ ingest 動線拡張 / Phase 2b（**実装済み**）= 意味解釈 lint 4 検査（横断矛盾・synthesis 再生成要否・3 面相互矛盾・バージョン軸決着、承認制） / Phase 3a（**実装済み**）= `/llm-wiki refresh-tier-a` + ロック規約 + lint #12（refresh 停止監視） / Phase 3b（**実装済み**）= session-start hook 設定例（read-only context preload）＋ F-5 空 commit ガード / Phase 3c = `/llm-wiki discover-tier-a`（未取り込み URL の自動発見、未設計） / Phase 3d（**実装済み**）= F-4 共通 surface 確立（mode B ingest 拡張で migration_pending 承認後 ingest を内包）＋ F-6 sources: append 明文化＋ C overview 自動更新（同一 commit inline）＋ F-3 log.md append 規約（F-2 dirty check から log.md 除外） / Phase 3e = 会話中の URL 自動取り込み（B・trigger 設計、未設計） / Phase 4 = ソース別取得ツール。
+ロードマップ: Phase 2a（**実装済み**）= 機械判定 lint 7 検査＋ practice/feature テンプレ＋ ingest 動線拡張 / Phase 2b（**実装済み**）= 意味解釈 lint 4 検査（横断矛盾・synthesis 再生成要否・3 面相互矛盾・バージョン軸決着、承認制） / Phase 3a（**実装済み**）= `/llm-wiki refresh-tier-a` + ロック規約 + lint #12（refresh 停止監視） / Phase 3b（**実装済み**）= session-start hook 設定例（read-only context preload）＋ F-5 空 commit ガード / Phase 3c（**実装済み**）= `/llm-wiki discover-tier-a`（Tier A 未取り込み URL の自動発見＋承認制 ingest・mode G・lint #13・schema v1.5.0 `pending_discoveries[]`/`last_discover_tier_a_run`） / Phase 3d（**実装済み**）= F-4 共通 surface 確立（mode B ingest 拡張で migration_pending 承認後 ingest を内包）＋ F-6 sources: append 明文化＋ C overview 自動更新（同一 commit inline）＋ F-3 log.md append 規約（F-2 dirty check から log.md 除外） / Phase 3e = 会話中の URL 自動取り込み（B・trigger 設計、未設計） / Phase 4 = ソース別取得ツール。
 
 ### 既存のドキュメント生成系コマンド/スキル
 
