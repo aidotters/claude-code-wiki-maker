@@ -1,0 +1,22 @@
+{
+  "_comment": "会話 URL 検出 hook 設定例（UserPromptSubmit・llm-wiki Phase 3e）。.claude/settings.json にマージして使用（project local 推奨・グローバル ~/.claude/settings.json への登録は他プロジェクトでも発火するため非推奨）。マージ対象は hooks キーのみ（_comment / _notes は説明用フィールドなのでコピーしない）。CWD = リポジトリルート前提（claude を ./ から起動）。",
+  "_notes": [
+    "command は同梱スクリプト references/conversation-url-hook.example.sh を起動する。パスは CWD=リポジトリルート前提の相対パス。スクリプトを別の場所にコピーした場合は command のパスを差し替える",
+    "依存: jq（stdin の UserPromptSubmit JSON から .prompt を抽出）。jq 不在時はスクリプトが無音で no-op するため会話は壊れない",
+    "スクリプト冒頭の [ -L ./wiki-vault ] || exit 0 により、vault リンク不在（= この知識ハブ以外のプロジェクト）では無音終了する。settings が万一グローバルに漏れても無関係プロジェクトで append しない",
+    "検出 URL は vault 外の .llm-wiki-inbox.jsonl（リポジトリルート直下・/llm-wiki init が .gitignore に追加）に貯まる。triage は /llm-wiki review（モード H）で承認制 ingest",
+    "UserPromptSubmit hook は matcher を取らない（全プロンプト送信で発火）。hook はコンテキスト注入も block もせず、検出して append するだけ"
+  ],
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh ./.claude/skills/llm-wiki/references/conversation-url-hook.example.sh"
+          }
+        ]
+      }
+    ]
+  }
+}
