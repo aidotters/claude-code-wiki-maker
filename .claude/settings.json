@@ -4,7 +4,7 @@
             {
                 "hooks": [
                     {
-                        "command": "sh ./.claude/skills/llm-wiki/references/conversation-url-hook.example.sh",
+                        "command": "sh ./.claude/skills/llm-wiki/references/conversation-url-hook.sh",
                         "type": "command"
                     }
                 ]
