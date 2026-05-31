@@ -1,0 +1,14 @@
+{
+    "hooks": {
+        "UserPromptSubmit": [
+            {
+                "hooks": [
+                    {
+                        "command": "sh ./.claude/skills/llm-wiki/references/conversation-url-hook.sh",
+                        "type": "command"
+                    }
+                ]
+            }
+        ]
+    }
+}
