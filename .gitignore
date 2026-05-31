@@ -61,3 +61,6 @@ Thumbs.db
 
 # llm-wiki: 独立 Obsidian ボールトへのシンボリックリンク（実体は別 Git・誤コミット防止）
 wiki-vault
+
+# llm-wiki: 会話 URL hook の vault 外 inbox（Phase 3e・triage 前バッファ・誤コミット防止）
+.llm-wiki-inbox.jsonl
