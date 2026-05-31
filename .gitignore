@@ -64,3 +64,8 @@ wiki-vault
 
 # llm-wiki: 会話 URL hook の vault 外 inbox（Phase 3e・triage 前バッファ・誤コミット防止）
 .llm-wiki-inbox.jsonl
+
+# llm-wiki: 会話 URL hook を有効化する active 設定（Phase 3e・opt-in）。
+# コミットするとクローン者に UserPromptSubmit hook が自動適用されるため追跡しない。
+# 有効化は `cp .claude/settings.example.json .claude/settings.json`（example のみ追跡）。
+.claude/settings.json
