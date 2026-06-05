@@ -1,11 +1,12 @@
 # personal-wiki-for-claude-code
 
-> **ステータス: MVP（Phase 1）＋ Phase 2a・2b・3a・3b・3c・3d・3e・3f 実装済み**
-> 主役機能 `/llm-wiki` の `init` / `ingest`（`--watch` で Tier B watchlist 登録）/ `query` / `synthesize` / `lint`（機械判定＋
-> 意味解釈 4 検査・#11 のみ承認制で `## 矛盾` 末尾に決着注記を追記・全 15 検査）/
+> **ステータス: MVP（Phase 1）＋ Phase 2a・2b・3a・3b・3c・3d・3e・3f・3g 実装済み**
+> 主役機能 `/llm-wiki` の `init` / `ingest`（`--watch` で Tier B watchlist 登録・`--feed=<rss_url>` で Tier B フィード登録）/ `query` / `synthesize` / `lint`（機械判定＋
+> 意味解釈 4 検査・#11 のみ承認制で `## 矛盾` 末尾に決着注記を追記・全 16 検査）/
 > `refresh-tier-a`（Tier A 既知 URL の日次自動再取得）/ `discover-tier-a`（Tier A 未取り込み URL の自動発見＋承認制 ingest）/
 > `refresh-watchlist`（Tier B watchlist〔`watch:true`〕の日次自動再取得＝mode F の Tier B 版）/
-> `review`（会話 URL hook が貯めた URL を opt-in 承認 ingest）と、
+> `review`（会話 URL hook が貯めた URL を opt-in 承認 ingest）/
+> `discover-watchlist`（登録 Tier B フィード〔`feed_url`〕の新着 URL 自動発見＋stage-1/stage-2 フィルタ＋承認制 ingest・mode G の Tier B 版）と、
 > session-start hook（Phase 3b）・会話 URL hook（Phase 3e）の設定例・launchd plist 例
 > （`references/*.example.*`・利用者が `.claude/settings.json` に手動マージ／`.claude/settings.example.json` を `cp` で有効化）、
 > schema/templates（practice/feature 含む）を `.claude/skills/llm-wiki/` に実装済みです。
@@ -47,14 +48,15 @@ claude
 | 操作 | 内容 | Phase |
 |------|------|:---:|
 | `init` | ボールト初期化・`./wiki-vault` リンク案内・設定/`.gitignore` 整備 | 1（MVP） |
-| `ingest <path-or-url> [--type=practice\|--feature=<slug>] [--watch]` | ソースを取り込み、source ページ生成・相互参照・矛盾は明示（`--type`／`--feature` は 2a・`--watch` は 3f＝Tier B URL を watchlist 登録〔`watch:true`〕） | 1（MVP）＋ 2a ＋ 3f |
+| `ingest <path-or-url> [--type=practice\|--feature=<slug>] [--watch] [--feed=<rss_url>]` | ソースを取り込み、source ページ生成・相互参照・矛盾は明示（`--type`／`--feature` は 2a・`--watch` は 3f＝Tier B URL を watchlist 登録〔`watch:true`〕・`--feed` は 3g＝Tier B フィード登録〔`feed_url` を立て discover-watchlist の巡回対象に〕） | 1（MVP）＋ 2a ＋ 3f ＋ 3g |
 | `query <質問>` | index → 関連ページの順で読み引用付き回答（不足は Web 補完を明示） | 1（MVP） |
 | `synthesize <テーマ>` | チートシート/Tips 集等を `wiki/syntheses/` に引用付き生成・再生成 | 1（MVP） |
-| `lint [--check=<csv>]` | 孤立/陳腐化/信頼度/index 同期/baseline 鮮度/refresh・discover・watchlist 停止/死 URL の監査（2a: 機械判定 7 検査・レポートのみ／2b: 意味解釈 4 検査・承認制／3a: #12 last-tier-a-refresh／3c: #13 discover 停止／3f: #14 watchlist 停止・#15 死 URL surface＝全 15 検査） | 2a／2b／3a／3c／3f |
+| `lint [--check=<csv>]` | 孤立/陳腐化/信頼度/index 同期/baseline 鮮度/refresh・discover・watchlist 停止/死 URL の監査（2a: 機械判定 7 検査・レポートのみ／2b: 意味解釈 4 検査・承認制／3a: #12 last-tier-a-refresh／3c: #13 discover 停止／3f: #14 watchlist 停止・#15 死 URL surface／3g: #16 discover-watchlist 停止＝全 16 検査） | 2a／2b／3a／3c／3f／3g |
 | `refresh-tier-a [--dry-run]` | Tier A 既知 URL の日次自動再取得・再コンパイル・`current-baseline.md` baseline フィールド自動更新（launchd/cron からの非対話実行・モード F）。`--dry-run` は副作用ゼロのレポートのみ。Phase 3b で同日 2 回目の `last_tier_a_refresh` 空 commit をガード | 3a／3b |
 | `discover-tier-a [--no-prompt\|--dry-run]` | Tier A 公式 docs/GitHub の**未取り込み URL を自動発見**し `pending_discoveries[]` に dedup append・承認制で共通 surface 経由 ingest（モード G）。`--no-prompt` は launchd/cron 用（discovery のみ・非対話）、`--dry-run` は副作用ゼロ。Phase 3e で承認を capped バッチ opt-out に amend | 3c／3e |
 | `refresh-watchlist [--dry-run]` | Tier B watchlist（`tier:B`＋`watch:true` の source ページ）を mode F の per-source 機械を再利用して**日次自動再取得**（モード W・mode F の Tier B 版）。取得失敗時は `fetch_status:failed` を立て commit（死 URL は lint #15 で surface・受動回復）。**`current-baseline.md` の version 系は触らない**（W-4f 省略＝決定6・Tier B は承認制で自動上書きしない）。launchd/cron は refresh-tier-a と起動時刻 stagger（lock 競合回避）。`--dry-run` は副作用ゼロ | 3f |
 | `review [--dry-run]` | 会話 URL hook が vault 外 `.llm-wiki-inbox.jsonl` に貯めた URL を drain → **opt-in 個別承認** → 共通 surface 経由 ingest（モード H）。対話専用。`--dry-run` は inbox preview のみ | 3e |
+| `discover-watchlist [--no-prompt\|--dry-run]` | `feed_url` 登録済み Tier B サイトの RSS/Atom を巡回し**新着 URL を自動発見**。stage-1 keyword フィルタ（cron・API コスト 0）→ stage-2 LLM relevance 判定（対話のみ）→ `pending_feed_discoveries[]` append → capped バッチ opt-out 承認 → ingest（モード I・mode G の Tier B 版）。`--no-prompt` は launchd/cron 用（stage-1+append のみ）。lint #16 で停止監視。cron は 3 系統 stagger（03:00/03:30/04:00） | 3g |
 
 ## ロードマップ
 
@@ -69,7 +71,7 @@ claude
 | **3d（実装済み）** | F-4 共通 surface 確立（mode B ingest 拡張で migration_pending 承認後 ingest を内包）＋ sources: append 明文化＋ overview 自動更新（同一 commit inline）＋ log.md append 規約（dirty check から log.md 除外）・schema v1.4.0 |
 | **3e（実装済み）** | 会話 URL hook（`UserPromptSubmit` → vault 外 `.llm-wiki-inbox.jsonl`）＋ mode H `review`（opt-in 個別承認 ingest）＋ URL 正規化フル仕様（denylist）＋ stuck candidates 対策（`declined` negative cache）＋ 3c mode G 承認 UX を capped バッチ opt-out に amend |
 | **3f（実装済み）** | ウォッチリスト型 Tier B 定点観測〈単一 URL 型〉— `refresh-tier-a` の Tier B 版（mode `refresh-watchlist`＝`tier:B`＋`watch:true` 走査・mode B `--watch` opt-in 登録〔共通 surface 非伝播〕・W-4f 省略で `current-baseline.md` version 系不可触〔決定6・lint #3 再検出＝carrier 不要〕・`fetch_status` fetchability decay マーカー・lint #14 停止監視/#15 死 URL surface・schema v1.7.0・cron stagger plist 例同梱） |
-| 3g（要件のみ記録） | ウォッチリスト型 Tier B 定点観測〈定点フィード型〉— `discover-tier-a` の Tier B 版（サイト登録 → 新着 URL 発見 → relevance 2 段フィルタ → capped バッチ opt-out surface 合流・X は公開 RSS 無し＝ Phase 4 fetcher 依存）。設計は次回 |
+| **3g（実装済み）** | ウォッチリスト型 Tier B 定点観測〈定点フィード型〉— `discover-tier-a` の Tier B 版（mode I `discover-watchlist`＝`feed_url` 走査・RSS/Atom curl 巡回・stage-1 keyword フィルタ〔cron・API コスト 0〕・stage-2 LLM relevance 判定〔対話のみ〕・`pending_feed_discoveries[]` append+cap/eviction・capped バッチ opt-out 承認・mode B `--feed` opt-in 登録〔共通 surface 非伝播〕・lint #16 停止監視・schema v1.8.0・3 系統 stagger plist 同梱） |
 | 4 | ソース別取得ツール（X / Medium / Notion / 公式サイト等）。Phase 3g 定点フィード（特に X）の前提依存 |
 
 ## 含まれるもの
@@ -110,7 +112,7 @@ claude
     ↓
 /llm-wiki synthesize <テーマ>  # チートシート/Tips 集等を引用付きで生成・再生成
     ↓
-/llm-wiki lint                 # 15 検査（Phase 2a 7 機械判定＋ Phase 2b 4 意味解釈＋ Phase 3a #12 / 3c #13 / 3f #14・#15・#11 のみ承認制で `## 矛盾` 末尾に決着注記）
+/llm-wiki lint                 # 16 検査（Phase 2a 7 機械判定＋ Phase 2b 4 意味解釈＋ Phase 3a #12 / 3c #13 / 3f #14・#15 / 3g #16・#11 のみ承認制で `## 矛盾` 末尾に決着注記）
     ↓
 /llm-wiki refresh-tier-a       # Tier A 日次自動再取得（launchd/cron 経由・対話実行も可・--dry-run で副作用ゼロ確認）
     ↓
@@ -119,7 +121,7 @@ claude
 /llm-wiki refresh-watchlist    # Tier B watchlist の日次自動再取得（mode F の Tier B 版・launchd/cron 経由・refresh-tier-a と起動時刻 stagger）
 ```
 
-`lint` の意味解釈 4 検査（#5 横断矛盾・#8 synthesis 再生成要否・#10 3 面相互矛盾・#11 バージョン軸決着）は Phase 2b で、`#12 last-tier-a-refresh`（refresh 停止監視）と `refresh-tier-a` モード本体は Phase 3a で、`#14 last-refresh-watchlist-run`（watchlist 停止監視）/ `#15 watch-fetch-failed`（死 URL surface）と `refresh-watchlist` モード本体は Phase 3f で実装済みです。launchd plist 例は `.claude/skills/llm-wiki/references/{refresh-tier-a,refresh-watchlist}-launchd.plist.example`（後者は前者と起動時刻を stagger）。
+`lint` の意味解釈 4 検査（#5 横断矛盾・#8 synthesis 再生成要否・#10 3 面相互矛盾・#11 バージョン軸決着）は Phase 2b で、`#12 last-tier-a-refresh`（refresh 停止監視）と `refresh-tier-a` モード本体は Phase 3a で、`#14 last-refresh-watchlist-run`（watchlist 停止監視）/ `#15 watch-fetch-failed`（死 URL surface）と `refresh-watchlist` モード本体は Phase 3f で、`#16 last-discover-watchlist-run`（discover-watchlist 停止監視）と `discover-watchlist` モード本体は Phase 3g で実装済みです。launchd plist 例は `.claude/skills/llm-wiki/references/{refresh-tier-a,refresh-watchlist,discover-watchlist}-launchd.plist.example`（3 系統で起動時刻を stagger）。
 
 ## 設計上の主要決定
 
