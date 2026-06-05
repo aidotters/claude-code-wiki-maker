@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  /llm-wiki refresh-watchlist 用 launchd plist テンプレ（Phase 3f 同梱）
+
+  このファイルは **例（テンプレ）** です。`launchctl load` は利用者の手動操作です（自動配置はしません）。
+  refresh-tier-a-launchd.plist.example と同型。違いは (1) ProgramArguments が
+  `/llm-wiki refresh-watchlist`、(2) 起動時刻が **refresh-tier-a と stagger**（時間差）。
+
+  使い方:
+    1. 下記の <<REPLACE_REPO_PATH>> を本リポジトリの実 absolute path に置換
+       例:
+         REPO=/Users/<you>/Projects/personal-wiki-for-claude-code
+         sed -i '' "s#<<REPLACE_REPO_PATH>>#${REPO}#g" \
+           "${REPO}/.claude/skills/llm-wiki/references/refresh-watchlist-launchd.plist.example"
+    2. ~/Library/LaunchAgents/ に **コピー**して plist を配置（例ファイルそのものを load しない）
+         cp .claude/skills/llm-wiki/references/refresh-watchlist-launchd.plist.example \
+           ~/Library/LaunchAgents/local.llm-wiki-refresh-watchlist.plist
+    3. launchctl load ~/Library/LaunchAgents/local.llm-wiki-refresh-watchlist.plist
+    4. 動作確認のため一度だけ手動起動:
+         launchctl start local.llm-wiki-refresh-watchlist
+       以降は StartCalendarInterval（既定 03:30 ローカル）で自動起動。
+    5. 解除するときは:
+         launchctl unload ~/Library/LaunchAgents/local.llm-wiki-refresh-watchlist.plist
+         rm  ~/Library/LaunchAgents/local.llm-wiki-refresh-watchlist.plist
+
+  StandardOutPath / StandardErrorPath の既定は vault 直下の隠しログファイル。
+  vault Git の意図しないコミットを避けるため、vault `.gitignore` に次の 2 行を追加してください:
+    .refresh-watchlist-out.log
+    .refresh-watchlist-err.log
+
+  -- 各設定キーの意図 --
+
+  ProgramArguments:
+    `claude --print '/llm-wiki refresh-watchlist' --allowedTools=Read,Write,Edit,Bash,Grep,Glob,WebFetch`
+    の固定起動。
+    - `--allowedTools=` は **`=` 形式必須**。Claude CLI は variadic 引数を取るため
+      スペース区切り（`--allowedTools <list>`）にすると後続の prompt 位置引数を
+      食い込む既知の罠がある（spike で確認・memory: claude-code-cli-allowedtools-variadic）。
+
+  EnvironmentVariables (HOME / PATH / USER / LOGNAME / SHELL の 5 変数):
+    launchd は sanitized env でプロセスを起動するため、最低限以下の 5 変数を明示しないと
+    macOS keychain auth が解決できず `Not logged in` で fail する
+    （spike で確認・memory: claude-code-keychain-auth-env-vars）。
+    前提検証（非対話起動・WebFetch 権限・vault 書き込み・git commit）は Phase 3a で
+    refresh-tier-a により verified 済。mode W は同一コードパス（Tier B WebFetch も同一経路）の
+    ため 3f では再 spike 不要。
+
+  WorkingDirectory:
+    本リポジトリ直下を CWD にする必要がある（`.llm-wiki.json` を本リポジトリ直下から相対解決するため）。
+
+  StartCalendarInterval:
+    既定 **03:30 ローカル**（深夜帯）。**refresh-tier-a（既定 03:00）と stagger（時間差）させる**。
+    refresh-watchlist と refresh-tier-a は同一 vault 直下の `.llm-wiki.lock`（atomic 取得・排他制御）を
+    争うため、同時刻起動だと一方が毎回 lock 競合 skip し合う。30 分ずらすことで先発の
+    per-source ループ + commit が完了して lock を解放した後に後発が走る。
+    別時刻にしたい場合も refresh-tier-a と重ならない Hour / Minute にすること。
+
+  RunAtLoad:
+    false（load 時の即時起動はしない・想定外の二重実行回避）。
+
+  ANTHROPIC_API_KEY:
+    通常は keychain 経由で解決するため plist に埋めない。
+    上記 5 変数を満たしても auth で fail する場合のみ、最後の手段として追加。
+
+-->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>local.llm-wiki-refresh-watchlist</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>claude</string>
+        <string>--print</string>
+        <string>/llm-wiki refresh-watchlist</string>
+        <string>--allowedTools=Read,Write,Edit,Bash,Grep,Glob,WebFetch</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string><<REPLACE_REPO_PATH>></string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>HOME</key>
+        <string>/Users/<<REPLACE_USER>></string>
+        <key>USER</key>
+        <string><<REPLACE_USER>></string>
+        <key>LOGNAME</key>
+        <string><<REPLACE_USER>></string>
+        <key>SHELL</key>
+        <string>/bin/zsh</string>
+        <key>PATH</key>
+        <string>/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin:/Users/<<REPLACE_USER>>/.local/bin</string>
+    </dict>
+
+    <key>StandardOutPath</key>
+    <string><<REPLACE_REPO_PATH>>/wiki-vault/.refresh-watchlist-out.log</string>
+    <key>StandardErrorPath</key>
+    <string><<REPLACE_REPO_PATH>>/wiki-vault/.refresh-watchlist-err.log</string>
+
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>3</integer>
+        <key>Minute</key>
+        <integer>30</integer>
+    </dict>
+
+    <key>RunAtLoad</key>
+    <false/>
+
+    <key>KeepAlive</key>
+    <false/>
+</dict>
+</plist>
