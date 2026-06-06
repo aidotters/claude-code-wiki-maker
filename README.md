@@ -131,6 +131,7 @@ claude
 | `.claude/skills/`, `.claude/agents/` | 知識ハブの運用・保守を支える補助ツール（`/brainstorm` `/gen-all-docs` `/plan-feature` `/implement-feature` 等） |
 | `docs/ideas/` | 要件・設計スペック（本機能の source of truth） |
 | `docs/core/` | コアドキュメント（`architecture.md` / `development-guidelines.md`。`/gen-all-docs` が生成） |
+| `docs/plan/`, `.steering/` | 計画・作業ステアリングファイル置き場（`/plan-feature` `/implement-feature` が使用） |
 | `wiki-vault -> ...` | 独立 Obsidian ボールトへのシンボリックリンク（`.gitignore` 対象・init が作成） |
 
 ---
