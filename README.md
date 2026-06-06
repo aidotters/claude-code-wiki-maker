@@ -17,7 +17,7 @@
 | チートシート / Tips 集を作る | `/llm-wiki synthesize "<テーマ>"` | `wiki/syntheses/` に引用付きの派生成果物を生成・再生成 |
 | 知識ベースの健全性を点検する | `/llm-wiki lint` | 孤立ページ・陳腐化・矛盾・信頼度などを監査してレポート |
 | 公式 docs を毎日自動で最新化する | `/llm-wiki refresh-tier-a`（cron 推奨） | Anthropic 公式 docs/GitHub の既知 URL を日次で再取得・再コンパイル |
-| 追いたいサイトの新着を自動で拾う | `/llm-wiki ingest <URL> --feed=<RSS>` → `/llm-wiki discover-watchlist` | フィードを巡回して関連新着を発見 → 承認したものだけ取り込む |
+| 追いたいサイトの新着を自動で拾う | `/llm-wiki ingest <URL> --feed=<rss_url>` → `/llm-wiki discover-watchlist` | フィードを巡回して関連新着を発見 → 承認したものだけ取り込む |
 
 「どの操作が何をするか」の一覧は下の「`/llm-wiki` コマンド一覧」セクションを参照してください。
 
@@ -91,7 +91,7 @@ claude
 # その他サイト（Tier B）: 追いたい URL/フィードを定点観測
 > /llm-wiki ingest <URL> --watch    # この URL を watchlist 登録（日次再取得の対象に）
 > /llm-wiki refresh-watchlist       # watchlist の URL を日次再取得
-> /llm-wiki ingest <URL> --feed=<RSS>   # サイトのフィードを購読登録
+> /llm-wiki ingest <URL> --feed=<rss_url>   # サイトのフィードを購読登録
 > /llm-wiki discover-watchlist      # フィードを巡回 → 関連新着を発見 → 承認して取り込む
 
 # 会話中に見た URL を後でまとめて取り込む（会話 URL hook と併用）
@@ -99,7 +99,7 @@ claude
 ```
 
 - 公式（Tier A）は**自動更新**、その他（Tier B）は**承認制**（勝手にバージョン基準を書き換えません）。
-- cron は 3 系統の起動時刻をずらして競合を避けます。設定例は `.claude/skills/llm-wiki/references/*-launchd.plist.example`、各 hook の設定例は同 `references/*.example.*`（`.claude/settings.json` に手動マージ）。
+- cron は 3 系統の起動時刻をずらして競合を避けます。設定例は `.claude/skills/llm-wiki/references/*-launchd.plist.example`、各 hook の設定例は同 `references/*.example.*`（`.claude/settings.json` に手動マージ、または `cp .claude/settings.example.json .claude/settings.json` で一括有効化）。
 - `lint` が自動化の停止や死んだ URL を検知して知らせます。
 
 ---
@@ -109,7 +109,7 @@ claude
 | 操作 | 内容 |
 |------|------|
 | `init` | ボールト初期化・`./wiki-vault` リンク案内・設定/`.gitignore` 整備 |
-| `ingest <path-or-url> [--type=practice\|--feature=<slug>] [--watch] [--feed=<rss>\|--feed=notion-*:<sel>]` | ソースを取り込み、要約・相互参照・矛盾明示。すべての書き込み操作はこの共通経路に収束 |
+| `ingest <path-or-url> [--type=practice\|--feature=<slug>] [--watch] [--feed=<rss_url>\|--feed=notion-*:<sel>]` | ソースを取り込み、要約・相互参照・矛盾明示。すべての書き込み操作はこの共通経路に収束 |
 | `query <質問>` | `index.md` → 関連ページの順で引用付き回答（不足は Web 補完を明示） |
 | `synthesize <テーマ>` | チートシート/Tips 集等を `wiki/syntheses/` に引用付きで生成・再生成 |
 | `lint [--check=<csv>]` | 孤立/陳腐化/信頼度/index 同期/baseline 鮮度/自動化停止/死 URL を監査（一部は承認制で決着注記を追記） |
@@ -131,6 +131,7 @@ claude
 | `.claude/skills/`, `.claude/agents/` | 知識ハブの運用・保守を支える補助ツール（`/brainstorm` `/gen-all-docs` `/plan-feature` `/implement-feature` 等） |
 | `docs/ideas/` | 要件・設計スペック（本機能の source of truth） |
 | `docs/core/` | コアドキュメント（`architecture.md` / `development-guidelines.md`。`/gen-all-docs` が生成） |
+| `docs/plan/`, `.steering/` | 計画・作業ステアリングファイル置き場（`/plan-feature` `/implement-feature` が使用） |
 | `wiki-vault -> ...` | 独立 Obsidian ボールトへのシンボリックリンク（`.gitignore` 対象・init が作成） |
 
 ---
