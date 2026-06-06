@@ -1,5 +1,6 @@
 {
   "vault_relative": "./wiki-vault",
   "vault_absolute": "/Users/tak/Documents/claude-code-wiki",
-  "schema_version": "1.8.0"
+  "schema_version": "1.9.0",
+  "minitools_path": "/Users/tak/Projects/minitools"
 }
