@@ -41,13 +41,21 @@
       スペース区切り（`--allowedTools <list>`）にすると後続の prompt 位置引数を
       食い込む既知の罠がある（spike で確認・memory: claude-code-cli-allowedtools-variadic）。
 
-  EnvironmentVariables (HOME / PATH / USER / LOGNAME / SHELL の 5 変数):
+  EnvironmentVariables (HOME / PATH / USER / LOGNAME / SHELL の 5 変数 + NOTION_API_KEY):
     launchd は sanitized env でプロセスを起動するため、最低限以下の 5 変数を明示しないと
     macOS keychain auth が解決できず `Not logged in` で fail する
     （spike で確認・memory: claude-code-keychain-auth-env-vars）。
     前提検証（非対話起動・WebFetch 権限・vault 書き込み・git commit）は Phase 3a で
     refresh-tier-a により verified 済。mode I は mode G/W と同一コードパス（curl + WebFetch）のため
     3g では再 spike 不要。
+
+    **NOTION_API_KEY（Phase 4 追記）**: feed_registry の `notion-medium-db` ソース巡回で
+    minitools `discover-notion-medium` を Bash 実行する際に必須（未設定だと CLI が exit 1 で
+    当該 Notion source skip・他フィードは続行＝clean failure）。**Chrome / Playwright 系 env は不要**
+    （cron `--no-prompt` は stage-2 / ingest を実行せず `scrape-medium` Playwright を発火しない＝D3。
+    Playwright を使う Medium content fetch〔4a〕は対話セッションでのみ走る）。
+    minitools は `uv run --directory <minitools_path>` で起動するため PATH に `uv`
+    （通常 ~/.local/bin）が含まれることを確認（下記 PATH に既定で含む）。
 
   WorkingDirectory:
     本リポジトリ直下を CWD にする必要がある（`.llm-wiki.json` を本リポジトリ直下から相対解決するため）。
@@ -99,6 +107,10 @@
         <string>/bin/zsh</string>
         <key>PATH</key>
         <string>/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin:/Users/<<REPLACE_USER>>/.local/bin</string>
+        <!-- Phase 4: feed_registry の notion-medium-db 巡回（discover-notion-medium）に必須。
+             実際の API キー値に置換する（plist は ~/Library/LaunchAgents/ 配下＝gitignore 対象外に注意）。 -->
+        <key>NOTION_API_KEY</key>
+        <string><<REPLACE_NOTION_API_KEY>></string>
     </dict>
 
     <key>StandardOutPath</key>

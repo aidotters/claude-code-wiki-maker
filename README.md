@@ -1,15 +1,15 @@
 # personal-wiki-for-claude-code
 
-> **ステータス: MVP（Phase 1）＋ Phase 2a・2b・3a・3b・3c・3d・3e・3f・3g 実装済み**
-> 主役機能 `/llm-wiki` の `init` / `ingest`（`--watch` で Tier B watchlist 登録・`--feed=<rss_url>` で Tier B フィード登録）/ `query` / `synthesize` / `lint`（機械判定＋
+> **ステータス: MVP（Phase 1）＋ Phase 2a・2b・3a・3b・3c・3d・3e・3f・3g・4 実装済み**
+> 主役機能 `/llm-wiki` の `init` / `ingest`（`--watch` で Tier B watchlist 登録・`--feed=<rss_url>` で Tier B フィード登録・Phase 4 で `medium.com` → minitools `scrape-medium --cdp` 英語原文 raw〔対話のみ〕・`--feed=notion-*:` で document-less ソースを feed_registry 登録）/ `query` / `synthesize` / `lint`（機械判定＋
 > 意味解釈 4 検査・#11 のみ承認制で `## 矛盾` 末尾に決着注記を追記・全 16 検査）/
 > `refresh-tier-a`（Tier A 既知 URL の日次自動再取得）/ `discover-tier-a`（Tier A 未取り込み URL の自動発見＋承認制 ingest）/
 > `refresh-watchlist`（Tier B watchlist〔`watch:true`〕の日次自動再取得＝mode F の Tier B 版）/
 > `review`（会話 URL hook が貯めた URL を opt-in 承認 ingest）/
-> `discover-watchlist`（登録 Tier B フィード〔`feed_url`〕の新着 URL 自動発見＋stage-1/stage-2 フィルタ＋承認制 ingest・mode G の Tier B 版）と、
+> `discover-watchlist`（登録 Tier B フィード〔`feed_url` の http(s) RSS/Atom + Phase 4 で `feed_registry[]` の Notion Medium DB〕の新着 URL 自動発見＋stage-1/stage-2 フィルタ＋承認制 ingest・mode G の Tier B 版）と、
 > session-start hook（Phase 3b）・会話 URL hook（Phase 3e）の設定例・launchd plist 例
 > （`references/*.example.*`・利用者が `.claude/settings.json` に手動マージ／`.claude/settings.example.json` を `cp` で有効化）、
-> schema/templates（practice/feature 含む）を `.claude/skills/llm-wiki/` に実装済みです。
+> schema/templates（practice/feature 含む・schema v1.9.0）を `.claude/skills/llm-wiki/` に実装済みです。Phase 4（Medium 取り込み）は外部リポジトリ minitools の 2 CLI に依存（`.llm-wiki.json` の `minitools_path`・未設定/不在なら Medium 機能のみ無効化）。
 
 進化の速い **Claude Code**（CLI / Agent SDK / API）の知識を、検索ではなく**コンパイル**して蓄積し続ける、**個人の Claude Code 知識ハブ**リポジトリです。
 
@@ -48,7 +48,7 @@ claude
 | 操作 | 内容 | Phase |
 |------|------|:---:|
 | `init` | ボールト初期化・`./wiki-vault` リンク案内・設定/`.gitignore` 整備 | 1（MVP） |
-| `ingest <path-or-url> [--type=practice\|--feature=<slug>] [--watch] [--feed=<rss_url>]` | ソースを取り込み、source ページ生成・相互参照・矛盾は明示（`--type`／`--feature` は 2a・`--watch` は 3f＝Tier B URL を watchlist 登録〔`watch:true`〕・`--feed` は 3g＝Tier B フィード登録〔`feed_url` を立て discover-watchlist の巡回対象に〕） | 1（MVP）＋ 2a ＋ 3f ＋ 3g |
+| `ingest <path-or-url> [--type=practice\|--feature=<slug>] [--watch] [--feed=<rss_url>\|--feed=notion-*:<sel>]` | ソースを取り込み、source ページ生成・相互参照・矛盾は明示（`--type`／`--feature` は 2a・`--watch` は 3f＝Tier B URL を watchlist 登録〔`watch:true`〕・`--feed=<rss_url>` は 3g＝Tier B フィード登録〔`feed_url` を立て discover-watchlist の巡回対象に〕・**4a**＝`medium.com` URL は minitools `scrape-medium --cdp` で英語原文 raw〔対話のみ・Medium+`--watch` は reject〕・**4b**＝`--feed=notion-*:<sel>` は document-less ソースを `feed_registry[]` に登録〔raw/source ページなし〕） | 1（MVP）＋ 2a ＋ 3f ＋ 3g ＋ 4 |
 | `query <質問>` | index → 関連ページの順で読み引用付き回答（不足は Web 補完を明示） | 1（MVP） |
 | `synthesize <テーマ>` | チートシート/Tips 集等を `wiki/syntheses/` に引用付き生成・再生成 | 1（MVP） |
 | `lint [--check=<csv>]` | 孤立/陳腐化/信頼度/index 同期/baseline 鮮度/refresh・discover・watchlist 停止/死 URL の監査（2a: 機械判定 7 検査・レポートのみ／2b: 意味解釈 4 検査・承認制／3a: #12 last-tier-a-refresh／3c: #13 discover 停止／3f: #14 watchlist 停止・#15 死 URL surface／3g: #16 discover-watchlist 停止＝全 16 検査） | 2a／2b／3a／3c／3f／3g |
@@ -56,7 +56,7 @@ claude
 | `discover-tier-a [--no-prompt\|--dry-run]` | Tier A 公式 docs/GitHub の**未取り込み URL を自動発見**し `pending_discoveries[]` に dedup append・承認制で共通 surface 経由 ingest（モード G）。`--no-prompt` は launchd/cron 用（discovery のみ・非対話）、`--dry-run` は副作用ゼロ。Phase 3e で承認を capped バッチ opt-out に amend | 3c／3e |
 | `refresh-watchlist [--dry-run]` | Tier B watchlist（`tier:B`＋`watch:true` の source ページ）を mode F の per-source 機械を再利用して**日次自動再取得**（モード W・mode F の Tier B 版）。取得失敗時は `fetch_status:failed` を立て commit（死 URL は lint #15 で surface・受動回復）。**`current-baseline.md` の version 系は触らない**（W-4f 省略＝決定6・Tier B は承認制で自動上書きしない）。launchd/cron は refresh-tier-a と起動時刻 stagger（lock 競合回避）。`--dry-run` は副作用ゼロ | 3f |
 | `review [--dry-run]` | 会話 URL hook が vault 外 `.llm-wiki-inbox.jsonl` に貯めた URL を drain → **opt-in 個別承認** → 共通 surface 経由 ingest（モード H）。対話専用。`--dry-run` は inbox preview のみ | 3e |
-| `discover-watchlist [--no-prompt\|--dry-run]` | `feed_url` 登録済み Tier B サイトの RSS/Atom を巡回し**新着 URL を自動発見**。stage-1 keyword フィルタ（cron・API コスト 0）→ stage-2 LLM relevance 判定（対話のみ）→ `pending_feed_discoveries[]` append → capped バッチ opt-out 承認 → ingest（モード I・mode G の Tier B 版）。`--no-prompt` は launchd/cron 用（stage-1+append のみ）。lint #16 で停止監視。cron は 3 系統 stagger（03:00/03:30/04:00） | 3g |
+| `discover-watchlist [--no-prompt\|--dry-run]` | 登録 Tier B フィードを巡回し**新着 URL を自動発見**。I-3 は 2 経路〔(1) `feed_url` の http(s) RSS/Atom curl〔3g〕/ (2) `feed_registry[]` の `notion-medium-db` → minitools `discover-notion-medium`〔4b・Notion Medium DB〕〕。stage-1 keyword フィルタ（cron・API コスト 0）→ stage-2 LLM relevance 判定（対話のみ・notion は永続 `summary` 入力で WebFetch 省く）→ `pending_feed_discoveries[]` append → capped バッチ opt-out 承認 → ingest〔Medium は 4a Playwright・ingest cap K=5〕（モード I・mode G の Tier B 版）。`--no-prompt` は launchd/cron 用（stage-1+append のみ・Playwright 不発火）。lint #16 で停止監視。cron は 3 系統 stagger（03:00/03:30/04:00・4 系統目 plist なし） | 3g ＋ 4 |
 
 ## ロードマップ
 
@@ -72,7 +72,8 @@ claude
 | **3e（実装済み）** | 会話 URL hook（`UserPromptSubmit` → vault 外 `.llm-wiki-inbox.jsonl`）＋ mode H `review`（opt-in 個別承認 ingest）＋ URL 正規化フル仕様（denylist）＋ stuck candidates 対策（`declined` negative cache）＋ 3c mode G 承認 UX を capped バッチ opt-out に amend |
 | **3f（実装済み）** | ウォッチリスト型 Tier B 定点観測〈単一 URL 型〉— `refresh-tier-a` の Tier B 版（mode `refresh-watchlist`＝`tier:B`＋`watch:true` 走査・mode B `--watch` opt-in 登録〔共通 surface 非伝播〕・W-4f 省略で `current-baseline.md` version 系不可触〔決定6・lint #3 再検出＝carrier 不要〕・`fetch_status` fetchability decay マーカー・lint #14 停止監視/#15 死 URL surface・schema v1.7.0・cron stagger plist 例同梱） |
 | **3g（実装済み）** | ウォッチリスト型 Tier B 定点観測〈定点フィード型〉— `discover-tier-a` の Tier B 版（mode I `discover-watchlist`＝`feed_url` 走査・RSS/Atom curl 巡回・stage-1 keyword フィルタ〔cron・API コスト 0〕・stage-2 LLM relevance 判定〔対話のみ〕・`pending_feed_discoveries[]` append+cap/eviction・capped バッチ opt-out 承認・mode B `--feed` opt-in 登録〔共通 surface 非伝播〕・lint #16 停止監視・schema v1.8.0・3 系統 stagger plist 同梱） |
-| 4 | ソース別取得ツール（X / Medium / Notion / 公式サイト等）。Phase 3g 定点フィード（特に X）の前提依存 |
+| **4（実装済み）** | Medium 取り込み・2 層構造（X deferred）— **4a per-host content routing**（mode B step 3 で `medium.com` → minitools `scrape-medium --cdp` 英語原文 raw〔`fetched_via: minitools-playwright`・Tier B・対話のみ・Playwright auth decay を cron に持ち込まない〕・Medium+`--watch` は reject〔D8〕）＋ **4b Notion-DB-as-discovery**（mode I I-3 を `feed_registry[]` 経路で拡張・`notion-medium-db` を minitools `discover-notion-medium` で cron 巡回〔API キー認証のみ〕・stage-2 は永続 `summary` 再利用・Medium ingest K=5 cap・新規 mode/lint/4 系統目 plist なし＝mode I 流用）＋ `--feed=notion-*:` registry append＋ `minitools_path` 設定〔未設定/不在は Medium 機能のみ無効化〕＋ schema v1.9.0 |
+| 4+（将来） | X 自動巡回（公開 RSS 無し・ToS グレー・取得 spike を着手前 gate に・deferred）・YouTube transcript・Medium 著者フィード（mode I http(s) feed 登録） |
 
 ## 含まれるもの
 
@@ -119,6 +120,10 @@ claude
 /llm-wiki ingest <url> --watch # Tier B URL を watchlist 登録（source ページに watch:true）
     ↓
 /llm-wiki refresh-watchlist    # Tier B watchlist の日次自動再取得（mode F の Tier B 版・launchd/cron 経由・refresh-tier-a と起動時刻 stagger）
+    ↓
+/llm-wiki ingest https://medium.com/...        # Phase 4 4a: Medium URL を scrape-medium --cdp で英語原文取得（対話のみ・要 minitools_path + Chrome ログイン）
+/llm-wiki ingest --feed=notion-medium-db:default  # Phase 4 4b: Notion Medium DB を feed_registry に登録（document-less・raw/source ページなし）
+/llm-wiki discover-watchlist   # 登録フィード（http(s) RSS + Notion Medium DB）の新着を発見 → stage-2 → 承認 → ingest（Medium は 4a Playwright・K=5 cap）
 ```
 
 `lint` の意味解釈 4 検査（#5 横断矛盾・#8 synthesis 再生成要否・#10 3 面相互矛盾・#11 バージョン軸決着）は Phase 2b で、`#12 last-tier-a-refresh`（refresh 停止監視）と `refresh-tier-a` モード本体は Phase 3a で、`#14 last-refresh-watchlist-run`（watchlist 停止監視）/ `#15 watch-fetch-failed`（死 URL surface）と `refresh-watchlist` モード本体は Phase 3f で、`#16 last-discover-watchlist-run`（discover-watchlist 停止監視）と `discover-watchlist` モード本体は Phase 3g で実装済みです。launchd plist 例は `.claude/skills/llm-wiki/references/{refresh-tier-a,refresh-watchlist,discover-watchlist}-launchd.plist.example`（3 系統で起動時刻を stagger）。
