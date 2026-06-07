@@ -2,7 +2,7 @@
 
 ## 概要
 
-llm-wiki スキル（別リポジトリ `personal-wiki-for-claude-code`）の Phase 4 で Medium 記事を
+llm-wiki スキル（別リポジトリ `claude-code-wiki-maker`）の Phase 4 で Medium 記事を
 wiki に取り込むために、minitools に 2 つの CLI エントリーポイントを追加する。
 
 - **`scrape-medium`**: Medium 記事 URL を受け取り、英語原文 Markdown を stdout に出力

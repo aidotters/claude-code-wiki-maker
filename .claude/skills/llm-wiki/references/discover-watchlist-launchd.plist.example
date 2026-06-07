@@ -10,7 +10,7 @@
   使い方:
     1. 下記の <<REPLACE_REPO_PATH>> を本リポジトリの実 absolute path に置換
        例:
-         REPO=/Users/<you>/Projects/personal-wiki-for-claude-code
+         REPO=/Users/<you>/Projects/claude-code-wiki-maker
          sed -i '' "s#<<REPLACE_REPO_PATH>>#${REPO}#g" \
            "${REPO}/.claude/skills/llm-wiki/references/discover-watchlist-launchd.plist.example"
     2. ~/Library/LaunchAgents/ に **コピー**して plist を配置（例ファイルそのものを load しない）

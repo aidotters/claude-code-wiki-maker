@@ -92,7 +92,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Wiki の実体は **独立した Obsidian ボールト**（例: `~/Documents/claude-code-wiki`、別 Git で管理）。本リポジトリ直下にシンボリックリンク `./wiki-vault` を 1 本張って参照します（`.gitignore` 対象）。Obsidian は閲覧・グラフ・バックリンクの表示レイヤー。`.claude` はボールト側に持たせません。
 
 ```
-personal-wiki-for-claude-code/        # スキル資産の置き場（このリポジトリ）
+claude-code-wiki-maker/        # スキル資産の置き場（このリポジトリ）
 ├── .claude/skills/llm-wiki/
 │   ├── SKILL.md
 │   └── references/{schema.md,page-templates.md,lint-rules.md}
