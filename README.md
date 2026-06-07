@@ -92,7 +92,8 @@ claude
 > /llm-wiki ingest <URL> --watch    # この URL を watchlist 登録（日次再取得の対象に）
 > /llm-wiki refresh-watchlist       # watchlist の URL を日次再取得
 > /llm-wiki ingest <URL> --feed=<rss_url>   # サイトのフィードを購読登録
-> /llm-wiki discover-watchlist      # フィードを巡回 → 関連新着を発見 → 承認して取り込む
+> /llm-wiki ingest --feed=claude-blog-sitemap:default   # 公式ブログ claude.com/blog を定点観測（RSS 不在・sitemap 巡回）
+> /llm-wiki discover-watchlist      # フィード/sitemap を巡回 → 関連新着を発見 → 承認して取り込む
 
 # 会話中に見た URL を後でまとめて取り込む（会話 URL hook と併用）
 > /llm-wiki review                  # hook が貯めた URL を個別承認して取り込む
@@ -117,7 +118,7 @@ claude
 | `discover-tier-a [--no-prompt\|--dry-run]` | Tier A の未取り込み URL を自動発見 → 承認制で取り込み |
 | `refresh-watchlist [--dry-run]` | Tier B watchlist（`watch:true`）の日次自動再取得 |
 | `review [--dry-run]` | 会話 URL hook が貯めた URL を個別承認して取り込み（対話専用） |
-| `discover-watchlist [--no-prompt\|--dry-run]` | 登録フィード（RSS/Atom ＋ Notion DB）を巡回し関連新着を発見 → 承認制で取り込み |
+| `discover-watchlist [--no-prompt\|--dry-run]` | 登録フィード（RSS/Atom ＋ Notion DB ＋ 公式ブログ sitemap）を巡回し関連新着を発見 → 承認制で取り込み |
 
 各操作の引数・分岐の詳細は `.claude/skills/llm-wiki/SKILL.md`、設計の全体像は [`docs/core/architecture.md`](docs/core/architecture.md) を参照。
 
@@ -152,6 +153,6 @@ claude
 
 ## 開発状況
 
-**MVP（Phase 1）＋ Phase 2〜4 まで実装・検証済み**（schema v1.9.0）。直近の Phase 4 では Medium 取り込み（per-host content routing ＋ Notion DB ベースの新着発見）を追加しました。
+**MVP（Phase 1）＋ Phase 2〜4・4c まで実装・検証済み**（schema v1.10.0）。Phase 4 では Medium 取り込み（per-host content routing ＋ Notion DB ベースの新着発見）、Phase 4c では公式ブログ `claude.com/blog` の定点観測（RSS 不在のため sitemap 巡回・Tier B）を追加しました。
 
 Phase ごとの進化の経緯と設計判断は [`docs/core/architecture.md` §7](docs/core/architecture.md) に、各機能の詳細仕様は [`CLAUDE.md`](CLAUDE.md) に整理しています。今後の予定（X 自動巡回・YouTube transcript 等）は同ドキュメントの「4+（将来）」を参照。
