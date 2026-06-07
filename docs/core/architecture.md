@@ -26,7 +26,7 @@
 ### 2.2 ボールト分離（2 リポジトリ）
 
 ```
-repo A: personal-wiki-for-claude-code/   ← スキル資産（このリポジトリ・Git A）
+repo A: claude-code-wiki-maker/   ← スキル資産（このリポジトリ・Git A）
 ├── .claude/skills/llm-wiki/{SKILL.md, references/{schema,page-templates,lint-rules}.md, *.example.*}
 ├── .llm-wiki.json                        ← ボールト相対パス・schema_version・任意 minitools_path
 └── wiki-vault ─symlink─┐                 (.gitignore 対象)
