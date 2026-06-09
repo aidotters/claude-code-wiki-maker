@@ -174,7 +174,7 @@ Tier B が baseline を自動更新しない理由（決定6）: 再コンパイ
 | **F-4** | migration 承認後は old URL 書き換えでなく **new_url で新規 raw を ingest**（共通 surface = mode B 拡張） | spec F-4 |
 | **F-5** | 空 commit ガード（`last_tier_a_refresh` の値変化時のみ commit） | spec F-5 |
 | **F-6** | 再コンパイル時に新 raw を source ページ `sources:` 末尾に append（時系列保証） | spec F-6 |
-| **G-6** | discover-tier-a 承認 = **capped バッチ opt-out**（除外を選択・1 run cap N=20・`declined` negative cache） | spec Phase 3c/3e |
+| **G-6** | discover-tier-a 承認 = **capped バッチ opt-out**（除外を選択・1 run cap N=20・`declined` negative cache）。`AskUserQuestion` は空 submit と dialog 中止を区別できず「0 件選択＝全件取り込み」が判別不能なため、各バッチに sentinel `✅ 全件取り込む（除外なし）` を併置（選択肢上限 4 件に収めるため**バッチ 3 候補**化）・未回答は「確定しない」安全側扱い。I-6 も同型 | spec Phase 3c/3e |
 | **W-4f** | refresh-watchlist は baseline version 系を**触らない**（決定6 帰結・lint #3 が再検出） | SKILL mode W |
 | **I-3** | discover-watchlist のフィード巡回 = 2 系統 3 種（http(s) `feed_url` curl ／ `feed_registry[]` の `notion-medium-db` → `discover-notion-medium` ／ `claude-blog-sitemap` → `claude.com/sitemap.xml` curl で `/blog/<slug>` 英語のみ〔4c〕） | SKILL I-3 |
 | **I-6** | stage-2 relevance 判定を source 種別で分岐（notion は永続 `summary` 入力で WebFetch 省く／http-feed・sitemap は WebFetch） | SKILL I-6 |
