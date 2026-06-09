@@ -24,7 +24,7 @@
 - 構成: `.claude/skills/llm-wiki/SKILL.md` ＋ `references/{schema.md, page-templates.md, lint-rules.md}` ＋ 設定例ファイル群。
 - 記述粒度・フロントマターは既存 `.claude/skills/*/SKILL.md` と揃え、`gen-all-docs` の規模方針と平仄を保つ。
 - 受け入れ条件の正本は `docs/ideas/20260516-llm-wiki-skill-for-claude-code.md`。実装はこれを満たすこと。
-- schema（`references/schema.md`）とスキルは co-evolve する。schema 改訂時は `.llm-wiki.json` の `schema_version` も更新（現行 **v1.9.0**）。
+- schema（`references/schema.md`）とスキルは co-evolve する。schema 改訂時は `.llm-wiki.json` の `schema_version` も更新（現行 **v1.10.0**）。
 
 ## 3. Wiki 運用の不変条件（実装で必ず守る）
 
