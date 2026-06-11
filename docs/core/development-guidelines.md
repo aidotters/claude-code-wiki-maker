@@ -1,8 +1,8 @@
 # 開発ガイドライン（最小構成）
 
-> **ステータス: MVP（Phase 1）＋ Phase 2a・2b・3a・3b・3c・3d・3e・3f・3g・4 実装済み**
+> **ステータス: MVP（Phase 1）＋ Phase 2a・2b・3a・3b・3c・3d・3e・3f・3g・4・5 実装済み**
 > このドキュメントは実装済みスキル `.claude/skills/llm-wiki/`（source of truth）と `docs/ideas/20260516-llm-wiki-skill-for-claude-code.md`（受け入れ条件の正本）から同期されています。
-> 主役機能 `/llm-wiki` は `init` / `ingest` / `query` / `synthesize` / `lint`（16 検査）/ `refresh-tier-a` / `discover-tier-a` / `refresh-watchlist` / `review` / `discover-watchlist` を実装済みです。スキル改修後は `/update-docs`（または `/gen-all-docs`）で実態に同期してください。
+> 主役機能 `/llm-wiki` は `init` / `ingest`（`--backfill-dates` 含む）/ `query` / `synthesize` / `lint`（17 検査）/ `refresh-tier-a` / `discover-tier-a` / `refresh-watchlist` / `review` / `discover-watchlist` を実装済みです。スキル改修後は `/update-docs`（または `/gen-all-docs`）で実態に同期してください。
 
 このリポジトリは個人の Claude Code 知識ハブで、ビルド対象のアプリケーションコードを持ちません。「開発」とは主に **`.claude/skills/llm-wiki/` のスキル定義の作成・保守**、および **Wiki ボールトの規約の遵守**を指します。本ガイドラインは小規模構成として、テスト/リント/主要規約のみを定義します。設計の全体像（3 層・モード関係・データフロー・設計判断インデックス）は [`architecture.md`](architecture.md) を参照。
 
@@ -24,7 +24,7 @@
 - 構成: `.claude/skills/llm-wiki/SKILL.md` ＋ `references/{schema.md, page-templates.md, lint-rules.md}` ＋ 設定例ファイル群。
 - 記述粒度・フロントマターは既存 `.claude/skills/*/SKILL.md` と揃え、`gen-all-docs` の規模方針と平仄を保つ。
 - 受け入れ条件の正本は `docs/ideas/20260516-llm-wiki-skill-for-claude-code.md`。実装はこれを満たすこと。
-- schema（`references/schema.md`）とスキルは co-evolve する。schema 改訂時は `.llm-wiki.json` の `schema_version` も更新（現行 **v1.10.0**）。
+- schema（`references/schema.md`）とスキルは co-evolve する。schema 改訂時は `.llm-wiki.json` の `schema_version` も更新（現行 **v1.11.0**）。
 
 ## 3. Wiki 運用の不変条件（実装で必ず守る）
 
@@ -32,7 +32,7 @@
 2. **必ず引用**: 全主張は特定の `raw/` ソースを引用。`raw/` は不変スナップショット（原文 URL・取得日時・取得手段をメタ保持。WebFetch は要約のため raw に `note:` 明示＋再検証経路を残す。Medium は `fetched_via: minitools-playwright` の英語原文 verbatim）。
 3. **黙って上書きしない**: 既存と矛盾する主張は「矛盾」セクションを追加。
 4. **二段の矛盾検出（決定 Z）**: ingest は同一トピック（[[wikilink]] 先）のみ即時照合。横断矛盾は index.md の主張サマリを使う `lint`（Phase 2b・実装済み）に委譲。ingest/synthesize は index.md に各ページの主要主張サマリ（1〜2 行）を維持する。
-5. **フロントマター骨格は MVP から（決定 ア）**: `claude_code_version` / `updated` / `stale` / 情報源ティアは MVP の ingest/synthesize で全ページに記録。`lint` の機械判定・意味解釈は Phase 2a/2b で、refresh/discover/watchlist 系の停止監視（#12〜#16）は Phase 3a/3c/3f/3g で実装済み。
+5. **フロントマター骨格は MVP から（決定 ア）**: `claude_code_version` / `updated` / `stale` / 情報源ティアは MVP の ingest/synthesize で全ページに記録。raw フロントマターには Phase 5 で元日付メタ（`published_at` / `last_modified` / per-date `*_source`・ベストエフォート・unknown 許容）を追加（schema §3・E1 と両立する frontmatter 後追い補完）。`lint` の機械判定・意味解釈は Phase 2a/2b で、refresh/discover/watchlist 系の停止監視（#12〜#16）は Phase 3a/3c/3f/3g で、ソース原本陳腐化（#17 source-date-stale）は Phase 5 で実装済み。
 6. **情報源ティア**: Tier A（Anthropic 公式ドキュメント/公式 GitHub）/ Tier B（その他）。
    - Tier A の既知 URL は **日次自動再取得**（`refresh-tier-a`・モード F・Phase 3a）、未取り込み URL は**自動発見＋承認制 ingest**（`discover-tier-a`・モード G・Phase 3c）。`current-baseline.md` は Tier A 由来は自動更新可・手動上書き可。
    - Tier B は**承認制**。watchlist（`watch:true`）の日次自動再取得（`refresh-watchlist`・モード W・Phase 3f）とフィード（`feed_url` / `feed_registry[]`）の新着自動発見（`discover-watchlist`・モード I・Phase 3g/4）を解禁したが、**`current-baseline.md` の version 系は自動更新しない**（W-4f 省略・決定6＝乖離は lint #3 が次回対話で再検出）。
@@ -61,7 +61,7 @@
 - アプリケーションコードがないため、自動テスト・リント・型検査の対象はない。
 - 品質担保:
   - スキル定義は受け入れ条件（idea ドキュメント）との突き合わせでレビュー（`/review-docs`）。
-  - ボールト整合は `/llm-wiki lint`（16 検査・実装済み。Phase 2a 機械判定 7 ＋ Phase 2b 意味解釈 4 ＋ Phase 3a/3c/3f/3g 機械判定 5。#11 のみ承認制で `## 矛盾` 末尾に決着注記を追記）で監査し結果を `log.md` に追記。
+  - ボールト整合は `/llm-wiki lint`（17 検査・実装済み。Phase 2a 機械判定 7 ＋ Phase 2b 意味解釈 4 ＋ Phase 3a/3c/3f/3g 機械判定 5 ＋ Phase 5 機械判定 1〔#17 source-date-stale〕。#11 のみ承認制で `## 矛盾` 末尾に決着注記を追記）で監査し結果を `log.md` に追記。
 - ドキュメントは実装済みスキルを source of truth とし、改修後は `/update-docs`（または `/gen-all-docs`）で同期する。
 - 未実装の計画段階ドキュメント（`docs/ideas/` 由来の生成物等）には**計画段階マーカー**を冒頭に付与し、実装済みと区別する。実装後に `/update-docs` で実態へ同期する際にマーカーを外す。
 
