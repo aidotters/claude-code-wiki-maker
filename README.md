@@ -154,6 +154,6 @@ claude
 
 ## 開発状況
 
-**MVP（Phase 1）＋ Phase 2〜4・4c まで実装・検証済み**（schema v1.10.0）。Phase 4 では Medium 取り込み（per-host content routing ＋ Notion DB ベースの新着発見）、Phase 4c では公式ブログ `claude.com/blog` の定点観測（RSS 不在のため sitemap 巡回・Tier B）を追加しました。
+**MVP（Phase 1）＋ Phase 2〜5 まで実装・検証済み**（schema v1.11.0）。Phase 4 では Medium 取り込み（per-host content routing ＋ Notion DB ベースの新着発見）、Phase 4c では公式ブログ `claude.com/blog` の定点観測（RSS 不在のため sitemap 巡回・Tier B）、Phase 5 では raw スナップショットへの元日付メタ（`published_at` / `last_modified` ＋ 出所・経路別ベストエフォート抽出）と既存 raw への遡及補完 `--backfill-dates`・鮮度 lint #17・index 代表鮮度日を追加しました。
 
 Phase ごとの進化の経緯と設計判断は [`docs/core/architecture.md` §7](docs/core/architecture.md) に、各機能の詳細仕様は [`CLAUDE.md`](CLAUDE.md) に整理しています。今後の予定（X 自動巡回・YouTube transcript 等）は同ドキュメントの「4+（将来）」を参照。
