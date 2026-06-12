@@ -97,30 +97,32 @@ index.md / overview.md に各ページの代表「鮮度日」を出して人が
 
 ## 受け入れ条件
 
+> **Phase 5 verified（2026-06-12・PR #32 `1d177fd`→main `708db73`）**。詳細な検証結果と判定の canonical tracker は `.steering/20260610-raw-source-date-metadata/requirements.md`（23 項目 PASS）。本節は idea 原案ベースのため一部表記を plan-feature 確定仕様に追従済: **単一 `date_source` → per-date `published_at_source`/`last_modified_source`**、**出所 enum に `html-body` を追加（7 値）**。Medium 日付（Phase 2 ゲート）のみ未達で据え置き。
+
 ### raw メタ拡張
-- [ ] raw フロントマターに `published_at` / `last_modified` / `date_source` を記録できる
-- [ ] 取得できない日付は `unknown` として記録され、取得日・コンパイル日で代替されない
-- [ ] `date_source` が定義語彙（`gh-commit | feed-pubdate | sitemap-lastmod | html-meta | manual | unknown`）のいずれかである
-- [ ] schema_version が co-evolution で更新され、§3 と CLAUDE.md / development-guidelines に反映される
+- [x] raw フロントマターに `published_at` / `last_modified` ＋ per-date 出所（`published_at_source` / `last_modified_source`）を記録できる
+- [x] 取得できない日付は `unknown` として記録され、取得日・コンパイル日で代替されない
+- [x] 出所が定義語彙（`gh-commit | feed-pubdate | sitemap-lastmod | html-meta | html-body | manual | unknown`）のいずれかである
+- [x] schema_version が co-evolution で更新され、§3 と CLAUDE.md / development-guidelines に反映される（v1.11.0）
 
 ### 取得経路（Phase 1）
-- [ ] gh api 経路で commit 日付を `gh-commit` として記録する
-- [ ] フィード経路で `pubDate`/`updated` を `feed-pubdate` として記録する
-- [ ] sitemap 経路で `lastmod` を `sitemap-lastmod` として記録する
-- [ ] WebFetch 経路で取れた場合のみ `html-meta` として記録し、取れなければ `unknown`
+- [x] gh api 経路で commit 日付を `gh-commit` として記録する
+- [x] フィード経路で `pubDate`/`updated` を `feed-pubdate` として記録する
+- [x] sitemap 経路で `lastmod` を `sitemap-lastmod` として記録する
+- [x] WebFetch 経路で取れた場合のみ `html-meta`（不在時は本文可視日付の保守パース `html-body`）として記録し、取れなければ `unknown`
 
 ### (B) 機械シグナル
-- [ ] b1: 矛盾の決着で日付を補助材料に使う一方、Tier A 優先が日付で覆らない
-- [ ] b1: 日付 `unknown` の矛盾では日付軸を使わず従来軸（Tier / version）で判断する
-- [ ] b2: `last_modified` が古いソースに対する陳腐化 lint 検査がレポートされる
-- [ ] b3: synthesis 成果物がソースの鮮度を反映（注記または引用順）する
-- [ ] b4: index / overview に代表鮮度日が表示される
+- [x] b1: 矛盾の決着で日付を補助材料に使う一方、Tier A 優先が日付で覆らない
+- [x] b1: 日付 `unknown` の矛盾では日付軸を使わず従来軸（Tier / version）で判断する
+- [x] b2: `last_modified` が古いソースに対する陳腐化 lint 検査（#17 source-date-stale・代表鮮度日 180 日超で情報）がレポートされる
+- [x] b3: synthesis 成果物がソースの鮮度を反映（注記または引用順）する
+- [x] b4: index / overview に代表鮮度日が表示される
 
 ### 遡及補完
-- [ ] 既存 raw を sitemap/feed/gh から取れる範囲で補完でき、取れない分は `unknown` のまま残る
+- [x] 既存 raw を sitemap/feed/gh から取れる範囲で補完でき、取れない分は `unknown` のまま残る（`--backfill-dates`・実 vault で scanned=237 / filled=237〔該当経路 unknown 0〕実走）
 
 ### Medium（Phase 2 ゲート）
-- [ ] Medium 取り込み開始前に scrape 出力の日付有無が確認され、無ければ minitools 整備が先行する
+- [ ] Medium 取り込み開始前に scrape 出力の日付有無が確認され、無ければ minitools 整備が先行する（**Phase 2・未達で据え置き**）
 
 ## スコープ外
 
