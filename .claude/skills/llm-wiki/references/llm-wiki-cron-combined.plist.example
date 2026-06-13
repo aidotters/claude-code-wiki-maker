@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  /llm-wiki 統合 cron 用 launchd plist テンプレ（スリープ機向け・推奨）
+
+  ■ いつこれを使うか
+    Mac が夜間「スリープ」する運用（≠ 電源オフ）で、`pmset -g custom` の `sleep` が短い（例 1 分）場合。
+    このとき refresh-tier-a / refresh-watchlist / discover-watchlist / discover-tier-a を
+    **別々の plist に分けて stagger（03:00/03:30/…）すると機能しない**:
+      - launchd の StartCalendarInterval はシステムを起こさない（起こすのは pmset のみ）。
+      - 1 回の wake で起こしても、ジョブ間のすき間で sleep してしまい後続が発火しない。
+    → **全モードを 1 ジョブで連続実行**し、`caffeinate -i` で実行中の idle sleep を抑止する。
+    （常時起動のデスクトップなら個別 4 plist + stagger でも可。その場合は本ファイルではなく
+      refresh-tier-a-launchd.plist.example 等の 4 本を使う。）
+
+  ■ 使い方
+    1. <<REPLACE_REPO_PATH>> / <<REPLACE_USER>> を実値に置換し、~/Library/LaunchAgents/ にコピー:
+         REPO=/Users/<you>/Projects/claude-code-wiki-maker
+         sed -e "s#<<REPLACE_REPO_PATH>>#${REPO}#g" -e "s#<<REPLACE_USER>>#<you>#g" \
+           "${REPO}/.claude/skills/llm-wiki/references/llm-wiki-cron-combined.plist.example" \
+           > ~/Library/LaunchAgents/local.llm-wiki-cron.plist
+    2. launchctl load ~/Library/LaunchAgents/local.llm-wiki-cron.plist
+    3. **スリープからの自動復帰を仕込む（要 sudo・ジョブと同時刻に起こす）**:
+         sudo pmset repeat wake MTWRFSU 06:00:00
+       これで毎朝 06:00 にスリープから復帰 → 同時刻の本ジョブが「次回 wake 時実行」で発火する。
+       （wake をジョブより前にずらすと、sleep=1 ではジョブ発火前に再スリープし得るので同時刻が安全。）
+    4. 解除: launchctl unload ... && rm ... / sudo pmset repeat cancel
+
+  ■ 設計メモ
+    - ProgramArguments[0] は claude ではなく **/usr/bin/caffeinate**。caffeinate が `/bin/zsh -lc '…'` を
+      子に持つので claude は zsh 経由で起動される（launchd 直接 exec の exit 78 を回避）。
+    - フラグは **zsh 配列 `A=(...)`** で渡す（zsh は未クォート `$A` を単語分割しないため `A="..."` は不可）。
+    - `--permission-mode bypassPermissions`（無人で Bash が権限分類器に止められるのを回避・信頼済みローカル前提）、
+      `--strict-mcp-config`（スキルは MCP 不使用・headless で不要な接続を切る）。
+    - 日曜のみ discover-tier-a を追加実行（`if [ "$(date +%u)" -eq 7 ]; then … fi`。`&&` は非日曜に
+      ジョブ exit 1 の誤検知になるため if/fi を使う）。
+    - vault 実体は ~/Documents/~/Desktop/~/Downloads の**外**に置く（TCC で launchd から読み書き不可）。
+    - StandardOut/ErrorPath は vault 直下の隠しログ。vault .gitignore に `.cron-out.log` / `.cron-err.log` を追加。
+    - EnvironmentVariables: keychain auth 解決に HOME/USER/LOGNAME/SHELL/PATH が必須。
+      NOTION_API_KEY は discover-watchlist の Notion 巡回用（未設定なら Notion のみ clean-skip）。
+-->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>local.llm-wiki-cron</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/bin/caffeinate</string>
+        <string>-i</string>
+        <string>/bin/zsh</string>
+        <string>-lc</string>
+        <string>A=(--permission-mode bypassPermissions --strict-mcp-config --allowedTools=Read,Write,Edit,Bash,Grep,Glob,WebFetch); claude --print "/llm-wiki refresh-tier-a" $A; claude --print "/llm-wiki refresh-watchlist" $A; claude --print "/llm-wiki discover-watchlist --no-prompt" $A; if [ "$(date +%u)" -eq 7 ]; then claude --print "/llm-wiki discover-tier-a --no-prompt" $A; fi</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string><<REPLACE_REPO_PATH>></string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>HOME</key>
+        <string>/Users/<<REPLACE_USER>></string>
+        <key>USER</key>
+        <string><<REPLACE_USER>></string>
+        <key>LOGNAME</key>
+        <string><<REPLACE_USER>></string>
+        <key>SHELL</key>
+        <string>/bin/zsh</string>
+        <key>PATH</key>
+        <string>/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin:/Users/<<REPLACE_USER>>/.local/bin</string>
+        <key>NOTION_API_KEY</key>
+        <string>REPLACE_WITH_NOTION_API_KEY</string>
+    </dict>
+
+    <key>StandardOutPath</key>
+    <string><<REPLACE_REPO_PATH>>/wiki-vault/.cron-out.log</string>
+    <key>StandardErrorPath</key>
+    <string><<REPLACE_REPO_PATH>>/wiki-vault/.cron-err.log</string>
+
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>6</integer>
+        <key>Minute</key>
+        <integer>0</integer>
+    </dict>
+
+    <key>RunAtLoad</key>
+    <false/>
+    <key>KeepAlive</key>
+    <false/>
+</dict>
+</plist>

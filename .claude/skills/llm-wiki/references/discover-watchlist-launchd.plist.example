@@ -86,10 +86,9 @@
 
     <key>ProgramArguments</key>
     <array>
-        <string>claude</string>
-        <string>--print</string>
-        <string>/llm-wiki discover-watchlist --no-prompt</string>
-        <string>--allowedTools=Read,Write,Edit,Bash,Grep,Glob,WebFetch</string>
+        <string>/bin/zsh</string>
+        <string>-lc</string>
+        <string>exec claude --print '/llm-wiki discover-watchlist --no-prompt' --permission-mode bypassPermissions --strict-mcp-config --allowedTools=Read,Write,Edit,Bash,Grep,Glob,WebFetch</string>
     </array>
 
     <key>WorkingDirectory</key>
@@ -108,9 +107,11 @@
         <key>PATH</key>
         <string>/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin:/Users/<<REPLACE_USER>>/.local/bin</string>
         <!-- Phase 4: feed_registry の notion-medium-db 巡回（discover-notion-medium）に必須。
-             実際の API キー値に置換する（plist は ~/Library/LaunchAgents/ 配下＝gitignore 対象外に注意）。 -->
+             配置後 ~/Library/LaunchAgents/ 配下のコピーで実際の API キー値に差し替える
+             （未差し替えなら Notion source のみ clean-skip・他フィードは続行）。
+             プレースホルダーは角括弧を含めない（`<<…>>` は XML 不正で load 不可になるため）。 -->
         <key>NOTION_API_KEY</key>
-        <string><<REPLACE_NOTION_API_KEY>></string>
+        <string>REPLACE_WITH_NOTION_API_KEY</string>
     </dict>
 
     <key>StandardOutPath</key>
