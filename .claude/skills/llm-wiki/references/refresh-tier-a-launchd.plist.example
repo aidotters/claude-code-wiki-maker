@@ -29,11 +29,25 @@
   -- 各設定キーの意図 --
 
   ProgramArguments:
-    `claude --print '/llm-wiki refresh-tier-a' --allowedTools=Read,Write,Edit,Bash,Grep,Glob,WebFetch`
-    の固定起動。
-    - `--allowedTools=` は **`=` 形式必須**。Claude CLI は variadic 引数を取るため
-      スペース区切り（`--allowedTools <list>`）にすると後続の prompt 位置引数を
-      食い込む既知の罠がある（spike で確認・memory: claude-code-cli-allowedtools-variadic）。
+    `/bin/zsh -lc "exec claude --print '/llm-wiki refresh-tier-a' --permission-mode bypassPermissions --strict-mcp-config --allowedTools=Read,Write,Edit,Bash,Grep,Glob,WebFetch"`
+    の固定起動。launchd 固有の 3 つの落とし穴を回避するため、直接 exec ではなく login shell でラップする:
+    - **login shell ラップ必須（`/bin/zsh -lc 'exec claude …'`）**: launchd が `claude` を**直接 exec**
+      すると、read-only プロンプトでも何も出力せず **exit 78（EX_CONFIG）で即死**する（claude 2.1.175 で実測・
+      A0/A1/B1 切り分けで auth/CWD/MCP いずれも無関係と確認）。zsh login shell 経由なら正常動作。
+      memory: claude-code-launchd-direct-exec-exit78。
+    - **`--permission-mode bypassPermissions` 必須**: claude 2.1.175 は `--allowedTools=…Bash…` の
+      blanket Bash 許可を「危険」として除去し、全 Bash を LLM 権限分類器に通す（毎回往復＋トークン＋
+      無人では拒否で run が静止）。信頼済みローカルスキルゆえ bypass で分類器を外す。
+      memory: claude-code-launchd-allowedtools-bypass。
+    - `--strict-mcp-config`: スキルは MCP ツールを使わないため、headless で不要な MCP 接続を切る（堅牢化）。
+    - `--allowedTools=` は **`=` 形式必須**（variadic 引数の罠回避・memory: claude-code-cli-allowedtools-variadic）。
+
+  vault の所在（**重要・TCC**）:
+    vault 実体は **`~/Documents` / `~/Desktop` / `~/Downloads` の外**（例 `~/claude-code-wiki`）に置くこと。
+    これらは macOS TCC 保護フォルダで、**launchd 起動プロセスは Terminal の TCC 権限を継承せず**
+    `Operation not permitted` で vault を読み書きできない（2 回の launchd プローブで実測）。
+    `.llm-wiki.json` の vault_absolute と `./wiki-vault` symlink を TCC 非保護パスに向ける。
+    memory: claude-code-launchd-tcc-documents。
 
   EnvironmentVariables (HOME / PATH / USER / LOGNAME / SHELL の 5 変数):
     launchd は sanitized env でプロセスを起動するため、最低限以下の 5 変数を明示しないと
@@ -63,10 +77,9 @@
 
     <key>ProgramArguments</key>
     <array>
-        <string>claude</string>
-        <string>--print</string>
-        <string>/llm-wiki refresh-tier-a</string>
-        <string>--allowedTools=Read,Write,Edit,Bash,Grep,Glob,WebFetch</string>
+        <string>/bin/zsh</string>
+        <string>-lc</string>
+        <string>exec claude --print '/llm-wiki refresh-tier-a' --permission-mode bypassPermissions --strict-mcp-config --allowedTools=Read,Write,Edit,Bash,Grep,Glob,WebFetch</string>
     </array>
 
     <key>WorkingDirectory</key>

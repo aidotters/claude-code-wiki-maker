@@ -71,10 +71,9 @@
 
     <key>ProgramArguments</key>
     <array>
-        <string>claude</string>
-        <string>--print</string>
-        <string>/llm-wiki refresh-watchlist</string>
-        <string>--allowedTools=Read,Write,Edit,Bash,Grep,Glob,WebFetch</string>
+        <string>/bin/zsh</string>
+        <string>-lc</string>
+        <string>exec claude --print '/llm-wiki refresh-watchlist' --permission-mode bypassPermissions --strict-mcp-config --allowedTools=Read,Write,Edit,Bash,Grep,Glob,WebFetch</string>
     </array>
 
     <key>WorkingDirectory</key>
